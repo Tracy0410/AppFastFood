@@ -792,4 +792,40 @@ class ApiService {
     }
     return []; // Trả về danh sách rỗng nếu lỗi
   }
+  // ================= AI CHAT =================
+ Future<String> chatWithAI({
+  required String question,
+}) async {
+  try {
+    final token = await StorageHelper.getToken();
+    final userId = await StorageHelper.getUserId();
+
+    final url = Uri.parse('$urlEdit/api/ai/chat');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'prompt': question, // ✅ PHẢI LÀ prompt
+        'user_id': userId,  // giữ hay bỏ đều được
+      }),
+    );
+
+   if (response.statusCode == 200) {
+  print('🔥 AI RAW RESPONSE: ${response.body}');
+  final jsonRes = jsonDecode(response.body);
+
+  return jsonRes['answer']?.toString() ?? 'AI chưa có câu trả lời';
+}
+ else {
+      return 'Lỗi AI (${response.statusCode})';
+    }
+  } catch (e) {
+    return 'Không kết nối được AI';
+  }
+}
+
 }

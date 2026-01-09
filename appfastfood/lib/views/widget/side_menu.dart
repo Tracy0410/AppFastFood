@@ -5,6 +5,7 @@ import 'package:appfastfood/views/screens/users/info/profile_screen.dart';
 import 'package:appfastfood/views/screens/users/setting/setting_screen.dart';
 import 'package:appfastfood/views/screens/welcome_screen.dart';
 import 'package:appfastfood/views/screens/users/home_interface/support_screen.dart';
+import 'package:appfastfood/views/screens/users/contact_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/user.dart';
@@ -163,7 +164,12 @@ class _SideMenuState extends State<SideMenu> {
                   () {},
                 ),
                 _buildMenuItem(Icons.credit_card, "Phương Thức Thanh Toán", () {}),
-                _buildMenuItem(Icons.phone_in_talk_outlined, "Liên Hệ Với Cửa Hàng", () {}),
+                _buildMenuItem(Icons.phone_in_talk_outlined, "Liên Hệ Với Cửa Hàng", () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ContactScreen()),
+                  );
+                }),
               ] else ...[
                 _buildMenuItem(Icons.login, "Đăng Nhập / Đăng Ký", () {
                   Navigator.pop(context);

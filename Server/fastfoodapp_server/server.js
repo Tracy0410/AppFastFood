@@ -5,6 +5,8 @@ import userRouter from './routes/userRouter.js';
 import productRouter from './routes/productRouter.js';
 import promotionRouter from './routes/promotionRouter.js';
 import PromotionController from './controller/promotionsController.js';
+import aiRouter from './routes/aiRouter.js'; 
+
 dotenv.config();
 
 const app = express();
@@ -16,8 +18,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
+
 app.use('/api', productRouter);
 app.use('/api', userRouter);
+// ✅ ROUTE AI
+app.use('/api/ai', aiRouter);
+console.log("👉 GEMINI KEY RAW =", JSON.stringify(process.env.OPENAI_API_KEY));
+
 
 // Ensure promotions route is registered explicitly (some environments may need direct handler)
 app.use('/api/promotions', promotionRouter);
