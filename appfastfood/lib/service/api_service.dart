@@ -14,7 +14,7 @@ class ApiService {
   static const String baseUrl = 'http://192.168.68.37:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
-  static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
+  static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
 
   // Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -78,6 +78,40 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Lỗi đăng ký: $e');
+    }
+  }
+
+  // Xóa tài khoản
+  Future<bool> deleteAccount(int userId) async {
+    try {
+      final token = await StorageHelper.getToken();
+      if (token == null) return false;
+
+      // URL này sẽ ghép thành: http://.../api/delete/5
+      final uri = Uri.parse('$urlEdit/api/delete/$userId'); 
+      
+      print("Dang goi API xoa: $uri"); // In ra để check link
+
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print("Status Code: ${response.statusCode}"); // Quan trọng: Xem mã lỗi (200, 404, 500?)
+      print("Response Body: ${response.body}");     // Quan trọng: Xem server báo lỗi gì
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+        return jsonResponse['success'] == true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print("Lỗi Exception Flutter: $e");
+      return false;
     }
   }
 

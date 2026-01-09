@@ -123,15 +123,18 @@ export default class userController {
                 return res.status(401).json({ success: false, message: 'Sai thông tin đăng nhập' });
             }
 
+            // Kiểm tra trạng thái tài khoản
+            if (user.status === 0) {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: 'Tài khoản này đã bị xóa hoặc bị khóa. Vui lòng liên hệ Admin.' 
+                });
+            }
+
             // 4. So sánh mật khẩu nhập vào với mật khẩu đã mã hóa trong DB
             const isMatch = await compare(password, user.password);
             if (!isMatch) {
                 return res.status(401).json({ success: false, message: 'Sai thông tin đăng nhập' });
-            }
-
-            // Kiểm tra trạng thái tài khoản
-            if (user.status === 0) {
-                return res.status(403).json({ success: false, message: 'Tài khoản đã bị khóa' });
             }
 
             // Tạo token
@@ -150,6 +153,31 @@ export default class userController {
         } catch (error) {
             console.error(error);
             res.status(500).json({ success: false, message: "Lỗi Server" });
+        }
+    }
+
+    // Xóa tài khoản
+    static async deleteAccount(req,res){
+        try{
+            const userId = req.params.id;
+            const tokenUserId = req.userId;
+
+            if (userId != tokenUserId) {
+                return res.status(403).json({ success: false, message: 'Bạn không có quyền xóa tài khoản này' });
+            }
+
+            const result = await userModel.updateStatusUser(userId);
+
+            if (result) {
+                res.status(200).json({ success: true, message: 'Đã xóa tài khoản thành công' });
+            } else {
+                res.status(400).json({ success: false, message: 'Không tìm thấy tài khoản hoặc lỗi xóa' });
+            }
+        }catch(e){
+            return res.status(400).json({
+                success: false,
+                message: e.message 
+            });
         }
     }
 

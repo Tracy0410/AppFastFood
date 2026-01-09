@@ -22,6 +22,7 @@ const upload = multer({ storage: storage, fileFilter: fileFilter });
 // Public routes
 userRouter.post('/login', userController.login);
 userRouter.post('/register', userController.register);
+userRouter.delete('/delete/:id', auth, userController.deleteAccount);
 
 // Routes quên mật khẩu
 userRouter.post('/send-otp', userController.sendOtp);
