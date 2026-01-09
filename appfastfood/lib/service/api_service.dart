@@ -11,7 +11,7 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://10.198.165.37:8001'; //máy thật
+  static const String baseUrl = 'http://10.59.96.3:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
   static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
@@ -458,7 +458,9 @@ class ApiService {
           dataList = decoded;
         } else if (decoded is Map && decoded['data'] is List) {
           dataList = decoded['data'];
-        } else if (decoded is Map && decoded['success'] == true && decoded['data'] == null) {
+        } else if (decoded is Map &&
+            decoded['success'] == true &&
+            decoded['data'] == null) {
           // Unexpected but handle gracefully
           return [];
         } else {
@@ -475,6 +477,7 @@ class ApiService {
       return [];
     }
   }
+
   Future<int?> getDefaultAddessId() async {
     try {
       final token = await StorageHelper.getToken();
