@@ -1,3 +1,4 @@
+import 'package:appfastfood/views/screens/users/info/address/address_list.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../service/api_service.dart';
@@ -220,7 +221,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   color: Colors.grey,
                                 ),
                                 onPressed: () {
-                                  // Mở màn hình chọn địa chỉ khác
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => AddressList(),
+                                    ),
+                                  );
                                 },
                               ),
                             ],

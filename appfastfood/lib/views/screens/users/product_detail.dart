@@ -1,4 +1,3 @@
-import 'package:appfastfood/models/cartItem.dart';
 import 'package:appfastfood/models/checkout.dart';
 import 'package:appfastfood/models/products.dart';
 import 'package:appfastfood/service/api_service.dart';
@@ -196,59 +195,83 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget build(BuildContext context) {
     const primaryColor = Color(0xFFE95322);
     final displayProduct = _fullProduct ?? widget.product;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Color(0xFFFFC529),
-        title: Text(
-          "Chi tiết sản phẩm",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          if (_isLoggedIn)
-            IconButton(
-              onPressed: () => _onLiked(),
-              icon: isFav
-                  ? Icon(Icons.favorite, color: Colors.red)
-                  : Icon(Icons.favorite_border_outlined, color: Colors.white),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(), // Hiệu ứng đàn hồi khi kéo
+        slivers: [
+          // 1. PHẦN ẢNH VÀ APPBAR (SliverAppBar)
+          SliverAppBar(
+            backgroundColor: const Color(0xFFFFC529),
+            expandedHeight: 350.0, // Chiều cao tối đa của ảnh
+            pinned: true, // Giữ lại thanh AppBar khi cuộn lên
+            stretch: true, // QUAN TRỌNG: Cho phép kéo bung hình xuống
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios,
+                color: Colors.white,
+              ), // Đổi màu trắng cho nổi trên ảnh
+              onPressed: () => Navigator.pop(context),
             ),
-        ],
-      ),
-      // Mở rộng body lên phần AppBar nếu muốn ảnh nền full
-      extendBodyBehindAppBar: true,
-
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. ẢNH SẢN PHẨM
-            Container(
-              height: 350,
-              width: double.infinity,
-              color: Colors.grey[100], // Màu nền tạm khi chưa load ảnh
-              child: widget.product.imageUrl.isNotEmpty
+            actions: [
+              if (_isLoggedIn)
+                IconButton(
+                  onPressed: () => _onLiked(),
+                  icon: isFav
+                      ? const Icon(Icons.favorite, color: Colors.red)
+                      : const Icon(
+                          Icons.favorite_border_outlined,
+                          color: Colors.white,
+                        ),
+                ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              title: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Ẩn title khi ảnh đang mở rộng, chỉ hiện khi co lại (tùy chọn)
+                  var top = constraints.biggest.height;
+                  return AnimatedOpacity(
+                    duration: const Duration(milliseconds: 300),
+                    opacity: top <= 100
+                        ? 1.0
+                        : 0.0, // Chỉ hiện chữ khi cuộn lên
+                    child: const Text(
+                      "Chi tiết sản phẩm",
+                      style: TextStyle(color: Colors.white, fontSize: 20),
+                    ),
+                  );
+                },
+              ),
+              centerTitle: true,
+              stretchModes: const [
+                StretchMode.zoomBackground, // Hiệu ứng zoom ảnh khi kéo
+                StretchMode.blurBackground,
+              ],
+              background: widget.product.imageUrl.isNotEmpty
                   ? Image.network(
                       widget.product.imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Center(
-                        child: Icon(Icons.image_not_supported, size: 50),
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported, size: 50),
+                        ),
                       ),
                     )
-                  : const Center(
-                      child: Icon(Icons.image_not_supported, size: 50),
+                  : Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Icon(Icons.image_not_supported, size: 50),
+                      ),
                     ),
             ),
+          ),
 
-            // 2. PHẦN THÔNG TIN (Bo tròn kéo lên trên ảnh một chút cho đẹp)
-            Container(
+          // 2. PHẦN NỘI DUNG CHI TIẾT
+          SliverToBoxAdapter(
+            child: Container(
+              // Dùng transform để đẩy nội dung đè lên phần dưới của ảnh
               transform: Matrix4.translationValues(0.0, -30.0, 0.0),
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -314,7 +337,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       Expanded(
                         child: Text(
                           widget.product.name,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -322,9 +345,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                  // Rating và Thời gian (Giả lập)
+                  // Rating và Thời gian
                   Row(
                     children: [
                       const Icon(Icons.star, color: Colors.amber, size: 20),
@@ -357,15 +380,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     "Mô tả",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
+                  const SizedBox(height: 10),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    width: 400,
-                    height: 150,
+                    padding: const EdgeInsets.all(10),
+                    width: double.infinity,
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: const Color.fromARGB(255, 160, 160, 160),
                         width: 1,
                       ),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       widget.product.description ??
@@ -379,7 +403,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  Divider(),
+                  const Divider(),
 
                   const SizedBox(height: 10),
 
@@ -416,12 +440,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     )
                   else
+                    // Lưu ý: Trong SliverToBoxAdapter, ListView cần shrinkWrap và physics như cũ
                     ListView.builder(
                       padding: EdgeInsets.zero,
-                      shrinkWrap:
-                          true, // BẮT BUỘC: Để cuộn được trong SingleChildScrollView
-                      physics:
-                          const NeverScrollableScrollPhysics(), // Tắt cuộn riêng của list view
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: displayProduct.review.length,
                       itemBuilder: (context, index) {
                         final review = displayProduct.review[index];
@@ -436,7 +459,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Avatar và Tên
                               Row(
                                 children: [
                                   CircleAvatar(
@@ -466,9 +488,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       ),
                                     ),
                                   ),
-                                  // Hiển thị ngày (nhỏ)
                                   Text(
-                                    "${review.reviewDate.day}/${review.reviewDate.month}/${review.reviewDate.year}", // Cắt chuỗi ngày cho gọn
+                                    "${review.reviewDate.day}/${review.reviewDate.month}/${review.reviewDate.year}",
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey[500],
@@ -477,8 +498,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-
-                              // Số sao rating
                               Row(
                                 children: List.generate(5, (starIndex) {
                                   return Icon(
@@ -491,8 +510,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 }),
                               ),
                               const SizedBox(height: 8),
-
-                              // Nội dung comment
                               Text(
                                 review.desciption,
                                 style: const TextStyle(
@@ -505,106 +522,124 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         );
                       },
                     ),
+                  // Thêm khoảng trống dưới cùng để không bị che bởi BottomBar
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+      // Bottom Navigation Bar giữ nguyên
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 10,
+              offset: const Offset(0, -3),
+            ),
           ],
         ),
-      ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const SizedBox(width: 20),
+                const Text(
                   "Tổng tiền: ",
-                  style: TextStyle(color: const Color.fromARGB(255, 0, 0, 0)),
-                ),
-              ),
-              Expanded(
-                child: Align(
-                  alignment: AlignmentGeometry.bottomRight,
-                  child: Text(
-                    "${widget.product.price * _quantity} VNĐ",
-                    style: TextStyle(color: Colors.red),
+                  style: TextStyle(
+                    color: Color.fromARGB(255, 0, 0, 0),
+                    fontSize: 16,
                   ),
                 ),
-              ),
-              SizedBox(width: 10),
-            ],
-          ),
-          SizedBox(height: 10),
-          Divider(),
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: IconButton(onPressed: () {}, icon: Icon(Icons.chat)),
-              ),
-              SizedBox(
-                height: 45,
-                child: VerticalDivider(
-                  color: primaryColor,
-                  thickness: 1,
-                  width: 20,
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: _isAddingToCart
-                    ? SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(),
-                      )
-                    : IconButton(
-                        onPressed: () {
-                          _addtoCart();
-                        },
-                        icon: Icon(Icons.shopping_cart_checkout_outlined),
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentGeometry.centerLeft,
+                    child: Text(
+                      "${widget.product.price * _quantity} VNĐ",
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
-              ),
-              Expanded(
-                child: ElevatedButton(
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: IconButton(
+                    onPressed: () {},
+                    icon: const Icon(
+                      Icons.chat_bubble_outline,
+                      color: primaryColor,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: _isAddingToCart
+                      ? const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : IconButton(
+                          onPressed: () {
+                            _addtoCart();
+                          },
+                          icon: const Icon(
+                            Icons.shopping_cart_outlined,
+                            color: primaryColor,
+                          ),
+                        ),
+                ),
+                ElevatedButton(
                   onPressed: () {
-                    // if (_isLoggedIn) {
-                    //   ScaffoldMessenger.of(context).showSnackBar(
-                    //     const SnackBar(
-                    //       content: Text("Mua thành công sản phẩm"),
-                    //     ),
-                    //   );
-                    // } else {
-                    //   ScaffoldMessenger.of(context).showSnackBar(
-                    //     const SnackBar(
-                    //       content: Text("Vui lòng đăng nhập tài khoản"),
-                    //     ),
-                    //   );
-                    // }
                     _processBuyNow();
                   },
                   style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.all(10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 40,
+                      vertical: 12,
+                    ),
                     backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadiusGeometry.circular(10),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: Text("Mua với voucher"),
+                  child: const Text(
+                    "Mua ngay",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              SizedBox(width: 10),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 5),
+          ],
+        ),
       ),
     );
   }
