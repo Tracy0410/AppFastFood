@@ -51,6 +51,38 @@ export default class userModel {
         }
     }
 
+    // Xóa tài khoản user
+    static async updateStatusUser(userId){
+        let connection = await beginTransaction();
+        try{
+            const [userRows] = await connection.execute(
+                'SELECT account_id FROM Users WHERE user_id = ?', 
+                [userId]
+            );
+
+            if (userRows.length === 0) {
+                await rollbackTransaction(connection);
+                return false;
+            }
+
+            const accountId = userRows[0].account_id;
+
+            await connection.execute(
+                'UPDATE Account SET status = 0 WHERE account_id = ?', 
+                [accountId]
+            );
+            await connection.execute(
+                'UPDATE Users SET status = 0 WHERE user_id = ?', 
+                [userId]
+            );
+
+            await commitTransaction(connection);
+            return true;
+        }catch(e){
+            throw new Error('Delete Account failed: ' + e.message);
+        }
+    }
+
     // Tìm user bằng ID (dùng cho profile)
     static async findById(id) {
         try {
