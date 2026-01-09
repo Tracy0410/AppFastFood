@@ -296,6 +296,7 @@ export default class userModel {
             throw new Error('Update password failed: ' + error.message);
         }
     }
+
     // Hàm này nhiều quá lười try catch deadline dí (T_T)
     static async checkItemInCart(user_id,product_id){
         const sql = `SELECT * FROM carts WHERE user_id = ? AND product_id = ?`;

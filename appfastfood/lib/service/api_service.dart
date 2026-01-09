@@ -11,7 +11,7 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://10.59.96.3:8001'; //máy thật
+  static const String baseUrl = 'http://192.168.68.37:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
   static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
@@ -178,10 +178,13 @@ class ApiService {
       );
 
       final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-      if (response.statusCode == 200 && jsonResponse['success'] == true) {
+      if (response.statusCode == 200) {
         return jsonResponse;
       } else {
-        throw Exception(jsonResponse['message'] ?? 'Gửi OTP thất bại');
+        return {
+          'success': false,
+          'message': jsonResponse['message'] ?? 'Lỗi không xác định'
+        };
       }
     } catch (e) {
       throw Exception('Lỗi gửi OTP: $e');
@@ -189,11 +192,7 @@ class ApiService {
   }
 
   // Đặt lại mật khẩu
-  Future<Map<String, dynamic>> resetPassword(
-    String email,
-    String otp,
-    String newPassword,
-  ) async {
+  Future<Map<String, dynamic>> resetPassword(String email, String otp, String newPassword) async {
     try {
       final url = Uri.parse('$urlEdit/api/reset-password');
 
