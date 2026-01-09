@@ -1,9 +1,9 @@
 import 'package:appfastfood/service/api_service.dart';
+import 'package:appfastfood/utils/app_colors.dart';
 import 'package:appfastfood/views/screens/login_screen.dart';
+import 'package:appfastfood/views/widget/auth_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../../utils/app_colors.dart';
-import '../../../widget/auth_widgets.dart';
 
 class ForgotPassScreen extends StatefulWidget {
   const ForgotPassScreen({super.key});

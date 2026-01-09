@@ -1,12 +1,17 @@
+import 'package:appfastfood/models/voucher.dart';
 import 'package:appfastfood/views/screens/users/info/address/address_list.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../service/api_service.dart';
-import '../../../models/checkout.dart'; // Import Model Preview
+import '../../../models/checkout.dart';
+import 'package:appfastfood/models/address.dart';
+import 'package:url_launcher/url_launcher.dart';
+// 1. IMPORT MÀN HÌNH KHUYẾN MÃI (Sửa lại đường dẫn cho đúng file của bạn)
+import 'package:appfastfood/views/screens/users/info/promotion_checkout_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
-  final List<OrderItemReq> inputItems; // Danh sách hàng cần mua
-  final bool isBuyFromCart; // Mua từ giỏ hay mua ngay
+  final List<OrderItemReq> inputItems;
+  final bool isBuyFromCart;
 
   const CheckoutScreen({
     super.key,
@@ -20,21 +25,19 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final ApiService _apiService = ApiService();
-  final TextEditingController _noteController =
-      TextEditingController(); // Controller cho ô ghi chú
+  final TextEditingController _noteController = TextEditingController();
 
-  CheckoutPreviewRes? _data; // Dữ liệu hứng từ API Preview
+  CheckoutPreviewRes? _data;
   bool _isLoading = true;
 
-  // Giả định dữ liệu chọn (Sau này bạn có thể làm màn hình chọn địa chỉ riêng)
-  int _addressId = 1;
-  int? _promotionId;
+  Address? _currentAddress;
+  Voucher? _selectedPromotion; // Lưu object Voucher đã chọn
   String _paymentMethod = "COD";
 
   @override
   void initState() {
     super.initState();
-    _fetchPreview();
+    _loadDefaultAddress();
   }
 
   @override
@@ -43,18 +46,114 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
-  // --- 1. Gọi API tính tiền trước (Preview) ---
+  // --- 2. HÀM CHỌN VOUCHER (MỚI THÊM) ---
+  void _onSelectVoucher() async {
+    // Mở màn hình PromotionScreen, truyền danh sách món ăn qua để lọc
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PromotionCheckoutScreen(
+          cartItems: widget.inputItems, // Truyền items qua đây
+        ),
+      ),
+    );
+
+    // Nếu user chọn 1 voucher và quay lại
+    if (result != null && result is Voucher) {
+      setState(() {
+        _selectedPromotion = result;
+      });
+
+      // Gọi lại API tính tiền để cập nhật giá giảm
+      _fetchPreview();
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Đã áp dụng mã: ${result.title}")));
+    }
+  }
+
+  Future<void> _loadDefaultAddress() async {
+    try {
+      final address = await _apiService.getAddress();
+      if (address.isNotEmpty) {
+        final defaultAddress = address.firstWhere(
+          (e) => e.isDefault == true,
+          orElse: () => address.first,
+        );
+        if (mounted) {
+          setState(() {
+            _currentAddress = defaultAddress;
+          });
+          _fetchPreview();
+        }
+      } else {
+        if (mounted) _fetchPreview();
+      }
+    } catch (e) {
+      print("Lỗi tải địa chỉ: $e");
+      if (mounted) _fetchPreview();
+    }
+  }
+
+  void _showPaymentMethodPicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Chọn phương thức thanh toán",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.money, color: Colors.green),
+                title: const Text("Thanh toán khi nhận hàng (COD)"),
+                trailing: _paymentMethod == "COD"
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : null,
+                onTap: () {
+                  setState(() => _paymentMethod = "COD");
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.qr_code, color: Colors.blue),
+                title: const Text("Ví VNPay / Ngân hàng"),
+                trailing: _paymentMethod == "VNPAY"
+                    ? const Icon(Icons.check_circle, color: Colors.blue)
+                    : null,
+                onTap: () {
+                  setState(() => _paymentMethod = "VNPAY");
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // --- 3. SỬA LẠI HÀM PREVIEW ---
   void _fetchPreview() async {
     setState(() => _isLoading = true);
 
-    // Convert dữ liệu để gửi lên Server
     final itemsMap = widget.inputItems.map((e) => e.toJson()).toList();
 
-    // Gọi hàm trong ApiService
+    // Sửa: Chỉ gửi ID của voucher đi, không gửi cả object
+    // promotionId: _selectedPromotion?.id
     final result = await _apiService.previewOrder(
       items: itemsMap,
-      promotionId: _promotionId,
-      shippingAddressId: _addressId,
+      promotionId: _selectedPromotion?.id, // <--- SỬA Ở ĐÂY
+      shippingAddressId: _currentAddress?.addressId,
     );
 
     if (mounted) {
@@ -65,11 +164,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  // --- 2. Gọi API đặt hàng thật (Submit) ---
+  // --- 4. SỬA LẠI HÀM SUBMIT ---
   void _submitOrder() async {
     if (_data == null) return;
 
-    // Hiện loading dialog
+    if (_currentAddress == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Vui lòng chọn địa chỉ")));
+      return;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -83,29 +188,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     try {
       final res = await _apiService.createOrder(
         items: itemsMap,
-        shippingAddressId: _addressId,
-        promotionId: _promotionId,
+        shippingAddressId: _currentAddress!.addressId,
+        promotionId: _selectedPromotion?.id, // <--- SỬA Ở ĐÂY (Gửi ID)
         paymentMethod: _paymentMethod,
         isBuyFromCart: widget.isBuyFromCart,
         note: _noteController.text.trim(),
       );
 
-      // Tắt loading dialog
       if (mounted) Navigator.pop(context);
 
       if (res['success'] == true) {
-        // Thành công -> Show thông báo và quay về trang chủ hoặc trang lịch sử đơn
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("🎉 Đặt hàng thành công!"),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (_paymentMethod == "VNPAY" && res['paymentUrl'] != null) {
+          final String url = res['paymentUrl'];
+          final Uri uri = Uri.parse(url);
 
-        // Quay về màn hình gốc (xóa hết stack màn hình cũ để tránh user back lại trang checkout)
-        // Navigator.of(context).pushNamedAndRemoveUntil('/home', (Route<dynamic> route) => false);
-        // Hoặc đơn giản là pop:
-        Navigator.pop(context);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Đang mở trang thanh toán VNPay..."),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Không thể mở liên kết thanh toán")),
+            );
+          }
+        } else {
+          // COD
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("🎉 Đặt hàng thành công!"),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // TODO: Nên dùng pushAndRemoveUntil để về Home và clear giỏ hàng
+          Navigator.pop(context);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -127,9 +246,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final currency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9), // Màu nền xám nhạt
+      backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFDC95F), // Màu vàng chủ đạo
+        backgroundColor: const Color(0xFFFDC95F),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.brown),
@@ -165,7 +284,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           : SingleChildScrollView(
               child: Column(
                 children: [
-                  // Header trang trí màu vàng cong cong
                   Container(
                     height: 20,
                     decoration: const BoxDecoration(
@@ -182,7 +300,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // --- 1. ĐỊA CHỈ GIAO HÀNG ---
+                        // --- ĐỊA CHỈ ---
                         const Text(
                           "Địa Chỉ Giao Hàng",
                           style: TextStyle(
@@ -195,7 +313,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF3E5AB), // Màu kem
+                            color: const Color(0xFFF3E5AB),
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Row(
@@ -205,14 +323,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 color: Color(0xFF5D4037),
                               ),
                               const SizedBox(width: 10),
-                              const Expanded(
-                                child: Text(
-                                  "778 Locust View Drive Oaklanda, CA (Hardcode)", // Sau này thay bằng biến address
-                                  style: TextStyle(
-                                    color: Color(0xFF5D4037),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                              Expanded(
+                                child: _currentAddress == null
+                                    ? const Text(
+                                        "Vui lòng chọn địa chỉ",
+                                        style: TextStyle(color: Colors.red),
+                                      )
+                                    : Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _currentAddress!.name,
+                                            style: const TextStyle(
+                                              color: Color(0xFF5D4037),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            "${_currentAddress!.streetAddress}, ${_currentAddress!.district}, ${_currentAddress!.city}",
+                                            style: const TextStyle(
+                                              color: Color(0xFF5D4037),
+                                              fontSize: 13,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
                               ),
                               IconButton(
                                 icon: const Icon(
@@ -220,13 +358,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   size: 20,
                                   color: Colors.grey,
                                 ),
-                                onPressed: () {
-                                  Navigator.push(
+                                onPressed: () async {
+                                  final result = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => AddressList(),
+                                      builder: (context) => const AddressList(
+                                        isFromCheckout: true,
+                                      ),
                                     ),
                                   );
+                                  if (result != null && result is Address) {
+                                    setState(() {
+                                      _currentAddress = result;
+                                    });
+                                    _fetchPreview();
+                                  }
                                 },
                               ),
                             ],
@@ -235,25 +381,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                         const SizedBox(height: 20),
 
-                        // --- 2. CÁC TÙY CHỌN (Phương thức thanh toán / Voucher) ---
+                        // --- 5. KẾT NỐI SỰ KIỆN CHỌN VOUCHER ---
                         _buildSelectorRow(
                           title: "Phương thức thanh toán",
-                          value: _paymentMethod,
+                          value: _paymentMethod == "COD"
+                              ? "Tiền mặt (COD)"
+                              : "VNPay (Online)",
                           icon: Icons.payment,
+                          opTap: _showPaymentMethodPicker,
                         ),
                         const Divider(thickness: 0.5),
                         _buildSelectorRow(
                           title: "Mã khuyến mãi",
-                          value: _promotionId != null
-                              ? "Đã chọn"
+                          // Nếu đã chọn thì hiện tên, chưa chọn thì nhắc
+                          value: _selectedPromotion != null
+                              ? _selectedPromotion!.title
                               : "Chọn voucher",
                           icon: Icons.local_offer,
-                          isHighlight: _promotionId != null,
+                          isHighlight: _selectedPromotion != null,
+                          opTap: _onSelectVoucher, // <--- GẮN HÀM VÀO ĐÂY
                         ),
 
                         const SizedBox(height: 20),
 
-                        // --- 3. DANH SÁCH MÓN ĂN ---
+                        // --- DANH SÁCH MÓN ---
                         const Text(
                           "Đơn Hàng",
                           style: TextStyle(
@@ -263,8 +414,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                         ),
                         const SizedBox(height: 10),
-
-                        // Render List Items
                         ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -287,7 +436,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  // Ảnh sản phẩm
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
                                     child: Image.network(
@@ -304,7 +452,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 15),
-                                  // Thông tin tên và giá
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -332,7 +479,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       ],
                                     ),
                                   ),
-                                  // Số lượng
                                   Text(
                                     "x${item.quantity}",
                                     style: const TextStyle(
@@ -347,7 +493,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           },
                         ),
 
-                        // --- 4. GHI CHÚ ---
                         const SizedBox(height: 10),
                         TextField(
                           controller: _noteController,
@@ -370,7 +515,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         const Divider(),
                         const SizedBox(height: 10),
 
-                        // --- 5. TỔNG KẾT TIỀN ---
+                        // --- TỔNG KẾT TIỀN ---
                         _buildSummaryRow(
                           "Tổng tiền hàng",
                           currency.format(_data!.subtotal),
@@ -419,15 +564,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                         const SizedBox(height: 40),
 
-                        // --- 6. NÚT ĐẶT HÀNG ---
                         SizedBox(
                           width: double.infinity,
                           height: 55,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(
-                                0xFFFDC95F,
-                              ), // Màu vàng
+                              backgroundColor: const Color(0xFFFDC95F),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
@@ -454,7 +596,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  // Widget con để hiển thị dòng text 2 bên (Trái: Tiêu đề, Phải: Giá trị)
   Widget _buildSummaryRow(
     String title,
     String value, {
@@ -486,17 +627,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  // Widget con để hiển thị dòng chọn (Payment, Voucher)
   Widget _buildSelectorRow({
     required String title,
     required String value,
     required IconData icon,
     bool isHighlight = false,
+    VoidCallback? opTap,
   }) {
     return InkWell(
-      onTap: () {
-        // Xử lý mở modal chọn payment hoặc voucher tại đây
-      },
+      onTap: opTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12.0),
         child: Row(
