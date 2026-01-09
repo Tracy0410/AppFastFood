@@ -1,0 +1,60 @@
+import { Router } from 'express';
+import userController from '../controller/userController.js';
+import auth from '../middleware/auth.js';
+import multer from 'multer';
+
+const userRouter = Router();
+
+// Cấu hình multer lưu vào bộ nhớ tạm (RAM) thay vì ổ cứng
+const storage = multer.memoryStorage(); 
+
+// Bộ lọc chỉ cho phép ảnh
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Chỉ được upload file ảnh!'), false);
+    }
+};
+
+const upload = multer({ storage: storage, fileFilter: fileFilter });
+
+// Public routes
+userRouter.post('/login', userController.login);
+userRouter.post('/register', userController.register);
+
+// Routes quên mật khẩu
+userRouter.post('/send-otp', userController.sendOtp);
+userRouter.post('/reset-password', userController.resetPassword);
+
+// Protected routes (Cần Token)
+userRouter.get('/profile', auth, userController.profile);
+userRouter.post('/profile/update', auth, upload.single('image'), userController.updateUserInfo);
+userRouter.post('/logout', auth, userController.logout);
+
+// Routes yêu thích (favorites)
+userRouter.post('/favorites/add',auth,userController.addFavorites);
+userRouter.get('/favorites/check',auth,userController.checkFavorites);
+userRouter.post('/favorites/remove',auth,userController.removeFavorite);
+userRouter.get('/favorites/list',auth,userController.getFavoriteList);
+
+// Cart
+userRouter.post('/carts/add',auth,userController.addToCart);
+userRouter.get('/carts',auth,userController.getCart);
+userRouter.put('/carts/update',auth,userController.updateCartItem);
+userRouter.delete('/carts/delete',auth,userController.removeCartItem);
+
+//Order
+userRouter.post('/orders/preview',auth,userController.priviewOrder);
+userRouter.post('/orders/create',auth,userController.checkout);
+//Check
+userRouter.get('/address/check',auth,userController.checkAddressById);
+
+userRouter.post('/orders/checkout',auth,userController.checkout);
+
+//Address
+userRouter.get('/addresses', auth,userController.getAddressList);
+userRouter.post('/addresses/add', auth, userController.addAddress);
+userRouter.put('/addresses/setup', auth, userController.setDefaultAddress);
+userRouter.delete('/addresses/delete', auth, userController.deleteAddress);
+export default userRouter;

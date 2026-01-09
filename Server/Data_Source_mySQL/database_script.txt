@@ -1,0 +1,290 @@
+DROP DATABASE IF EXISTS AppFastFood;
+CREATE DATABASE AppFastFood CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE AppFastFood;
+
+-- 1. Bảng Tài khoản
+CREATE TABLE Account (
+    account_id INT AUTO_INCREMENT PRIMARY KEY,
+    Username VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('CUSTOMER', 'ADMIN', 'STAFF') NOT NULL DEFAULT 'CUSTOMER',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status TINYINT DEFAULT 1
+);
+
+-- 2. Bảng Người dùng
+CREATE TABLE Users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    account_id INT NOT NULL UNIQUE,
+    fullname VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    phone VARCHAR(10) UNIQUE,
+    BirthDay DATE,
+    Image LONGTEXT,
+    status TINYINT DEFAULT 1,
+    FOREIGN KEY (account_id) REFERENCES Account(account_id) ON DELETE CASCADE
+);
+
+-- 3. Bảng Địa chỉ
+CREATE TABLE Addresses (
+    address_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    recipient_name VARCHAR(100),
+    street_address VARCHAR(255) NOT NULL,
+    district VARCHAR(100) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    is_default BOOLEAN DEFAULT FALSE,
+    status TINYINT DEFAULT 1,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
+-- 4. Bảng Danh mục
+CREATE TABLE Categories (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    status TINYINT DEFAULT 1
+);
+
+-- 5. Bảng Khuyến mãi
+CREATE TABLE Promotions (
+    promotion_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    discount_percent DECIMAL(5, 2) CHECK (discount_percent > 0 AND discount_percent <= 100),
+    start_date DATETIME NOT NULL,
+    end_date DATETIME NOT NULL,
+    status TINYINT DEFAULT 1
+);
+
+-- 6. Bảng Sản phẩm
+CREATE TABLE Products (
+    product_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(15, 2) NOT NULL,
+    image_url VARCHAR(255),
+    status TINYINT DEFAULT 1,
+    average_rating DECIMAL(3, 1) DEFAULT 0.0,
+    review_count INT DEFAULT 0,
+    FOREIGN KEY (category_id) REFERENCES Categories(category_id)
+);
+
+-- 7. Bảng Chi tiết khuyến mãi (Đã đổi tên từ Promotion_Scope)
+CREATE TABLE Promotion_Details (
+    promotion_detail_id INT AUTO_INCREMENT PRIMARY KEY, -- Đổi tên ID cho đồng bộ
+    promotion_id INT NOT NULL,
+    product_id INT DEFAULT NULL,
+    category_id INT DEFAULT NULL,
+    status TINYINT DEFAULT 1,
+    FOREIGN KEY (promotion_id) REFERENCES Promotions(promotion_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES Products(product_id),
+    FOREIGN KEY (category_id) REFERENCES Categories(category_id)
+);
+
+-- 8. Bảng Yêu thích
+CREATE TABLE Favorites (
+    fav_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    liked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES Products(product_id) ON DELETE CASCADE
+);
+
+-- 9. Bảng Đánh giá
+CREATE TABLE Reviews (
+    review_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    rating TINYINT NOT NULL DEFAULT 5 CHECK (rating >= 1 AND rating <= 5),
+    description TEXT,
+    review_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status TINYINT DEFAULT 1,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+    FOREIGN KEY (product_id) REFERENCES Products(product_id)
+);
+
+-- 10. Bảng Giỏ hàng
+CREATE TABLE Carts (
+    cart_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    note TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES Products(product_id)
+);
+
+-- 11. Bảng Đơn hàng
+CREATE TABLE Orders (
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    shipping_address_id INT NOT NULL,
+    subtotal DECIMAL(15, 2) NOT NULL,
+    tax_fee DECIMAL(15, 2) DEFAULT 0,
+    total_amount DECIMAL(15, 2) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    order_status ENUM('PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED') DEFAULT 'PENDING',
+    payment_status ENUM('UNPAID', 'PAID', 'REFUNDED') DEFAULT 'UNPAID',
+    note TEXT,
+    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+    FOREIGN KEY (shipping_address_id) REFERENCES Addresses(address_id)
+);
+
+-- 12. Bảng Thanh toán
+CREATE TABLE Payment (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    user_id INT NOT NULL,
+    method VARCHAR(50),
+    transaction_code VARCHAR(100),
+    amount DECIMAL(15, 2) NOT NULL,
+    status ENUM('PENDING', 'SUCCESS', 'FAILED') DEFAULT 'PENDING',
+    payment_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+);
+
+-- 13. Chi tiết đơn hàng (Cập nhật khóa ngoại)
+CREATE TABLE Order_Details (
+    detail_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    unit_price DECIMAL(15, 2) NOT NULL,
+    promotion_detail_id INT DEFAULT NULL, -- Đổi tên cột này cho khớp với bảng mới
+    final_line_price DECIMAL(15, 2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES Orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES Products(product_id),
+    FOREIGN KEY (promotion_detail_id) REFERENCES Promotion_Details(promotion_detail_id) -- Link tới bảng mới
+);
+
+-- =============================================
+-- INSERT DỮ LIỆU MẪU
+-- =============================================
+
+INSERT INTO Account (username, password, role, status) 
+VALUES ('admin', '$2a$12$lvwSTHJJZn0WAP3OjVHXS.KnftoXVE8.zzkxGywt1eiAxwPO7QuHW', 'ADMIN', 1);
+
+INSERT INTO Users (account_id, fullname, email, phone, birthday, Image, status) 
+VALUES (LAST_INSERT_ID(), 'Administrator', 'admin@fastfood.com', '0900000000', '1990-01-01', 'img/avatar_admin.png', 1);
+
+INSERT INTO Categories (name, status) VALUES 
+('Burger & Hotdog', 1),
+('Pizza & Mì Ý', 1),
+('Cơm & Món Chính', 1),
+('Gà Rán', 1),
+('Đồ Ăn Nhẹ & Salad', 1);
+
+INSERT INTO Products (category_id, name, description, price, image_url, status) VALUES
+(1, 'Burger Bò phô mai', 'Bò nướng lửa hồng kẹp phô mai Cheddar tan chảy và rau tươi.', 55000, 'img/burger_cheese.jpg', 1),
+(1, 'Burger Gà giòn', 'Gà phi lê tẩm bột chiên giòn rụm với sốt mayonnaise.', 45000, 'img/burger_chicken.jpg', 1),
+(1, 'Burger Tôm', 'Nhân tôm tươi xay nhuyễn, chiên xù giòn tan.', 59000, 'img/burger_shrimp.jpg', 1),
+(1, 'Burger Cá', 'Cá tuyết phi lê chiên giòn cùng sốt Tartar đặc biệt.', 49000, 'img/burger_fish.jpg', 1),
+(1, 'Hotdog', 'Bánh mì mềm kẹp xúc xích nướng và mù tạt vàng.', 35000, 'img/hotdog.jpg', 1),
+(2, 'Pizza Pepperoni', 'Đế bánh mỏng giòn, phủ đầy xúc xích Ý và phô mai.', 129000, 'img/pizza_pepperoni.jpg', 1),
+(2, 'Pizza Hải sản', 'Tôm, mực, thanh cua và ớt chuông trên nền sốt cà chua.', 149000, 'img/pizza_seafood.jpg', 1),
+(2, 'Pizza Phô mai', 'Sự kết hợp của 4 loại phô mai béo ngậy.', 119000, 'img/pizza_cheese.jpg', 1),
+(2, 'Mì Ý sốt bò bằm', 'Spaghetti với sốt Bolognese thịt bò bằm truyền thống.', 69000, 'img/spaghetti_bolo.jpg', 1),
+(2, 'Mì Ý sốt cay', 'Mì Ý xào hải sản với sốt ớt cay nồng.', 75000, 'img/spaghetti_spicy.jpg', 1),
+(2, 'Mì Ý sốt phô mai', 'Mì Ý sốt kem nấm và phô mai béo ngậy (Carbonara).', 72000, 'img/spaghetti_cheese.jpg', 1),
+(3, 'Cơm gà rán', 'Cơm trắng dẻo ăn kèm đùi gà chiên giòn và dưa leo.', 45000, 'img/rice_fried_chicken.jpg', 1),
+(3, 'Cơm gà viên', 'Cơm sốt teriyaki ăn kèm gà viên chiên giòn.', 42000, 'img/rice_popcorn.jpg', 1),
+(3, 'Cơm hải sản', 'Cơm chiên dương châu với tôm và mực.', 55000, 'img/rice_seafood.jpg', 1),
+(4, 'Gà rán truyền thống', 'Lớp vỏ giòn tan, thịt mềm ngọt vị nguyên bản (1 miếng).', 36000, 'img/chicken_original.jpg', 1),
+(4, 'Gà sốt cay', 'Gà rán phủ sốt ớt cay nồng thách thức vị giác (1 miếng).', 38000, 'img/chicken_spicy.jpg', 1),
+(4, 'Gà sốt mật ong', 'Gà rán kiểu Hàn Quốc sốt mật ong ngọt ngào (1 miếng).', 38000, 'img/chicken_honey.jpg', 1),
+(4, 'Gà viên (Popcorn)', 'Thịt ức gà cắt nhỏ chiên giòn, vui miệng dễ ăn.', 45000, 'img/chicken_popcorn.jpg', 1),
+(4, 'Cánh gà nướng BBQ', 'Cánh gà nướng thấm đẫm sốt BBQ đậm đà.', 55000, 'img/chicken_wings_bbq.jpg', 1),
+(4, 'Gà Nugget', 'Miếng gà xay chiên giòn (6 miếng).', 39000, 'img/chicken_nugget.jpg', 1),
+(5, 'Khoai tây chiên', 'Khoai tây nhập khẩu chiên vàng giòn rụm.', 29000, 'img/french_fries.jpg', 1),
+(5, 'Khoai tây lắc phô mai', 'Khoai tây chiên lắc bột phô mai thơm lừng.', 35000, 'img/fries_cheese.jpg', 1),
+(5, 'Cá chiên giòn', 'Thanh cá tẩm bột chiên xù ăn kèm sốt.', 39000, 'img/fish_stick.jpg', 1),
+(5, 'Phô mai que', 'Phô mai Mozzarella kéo sợi bọc bột chiên xù.', 42000, 'img/cheese_stick.jpg', 1),
+(5, 'Mực vòng chiên giòn', 'Mực tươi cắt khoanh tẩm bột chiên giòn.', 59000, 'img/calamari.jpg', 1),
+(5, 'Tôm chiên giòn', 'Tôm nguyên con tẩm bột chiên xù.', 65000, 'img/shrimp_fried.jpg', 1),
+(5, 'Xúc xích nướng', 'Xúc xích đức nướng thơm lừng.', 25000, 'img/sausage.jpg', 1),
+(5, 'Salad trộn', 'Bắp cải trộn sốt mayonnaise chua ngọt (Coleslaw).', 19000, 'img/coleslaw.jpg', 1),
+(5, 'Khoai tây nghiền', 'Khoai tây nghiền mịn màng rưới sốt nâu đậm đà.', 22000, 'img/mashed_potato.jpg', 1);
+///Chạy ở trên rồi thì chạy ở dưới này
+USE AppFastFood;
+
+-- =========================================================
+-- BƯỚC 1: Dọn dẹp dữ liệu cũ (Dùng DELETE thay vì TRUNCATE)
+-- =========================================================
+SET FOREIGN_KEY_CHECKS = 0; -- Tắt kiểm tra khóa ngoại
+
+-- Xóa dữ liệu bảng Promotion_Details
+DELETE FROM Promotion_Details;
+ALTER TABLE Promotion_Details AUTO_INCREMENT = 1; -- Reset ID về 1
+
+-- Xóa dữ liệu bảng Promotions
+DELETE FROM Promotions;
+ALTER TABLE Promotions AUTO_INCREMENT = 1; -- Reset ID về 1
+
+SET FOREIGN_KEY_CHECKS = 1; -- Bật lại kiểm tra ngay
+
+-- =========================================================
+-- BƯỚC 2: Tạo các Chương Trình Khuyến Mãi (Bảng Cha)
+-- =========================================================
+INSERT INTO Promotions (name, discount_percent, start_date, end_date, status) VALUES 
+('Lễ Hội Burger - Mua là mê', 15.00, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), 1),      -- ID: 1
+('Tiệc Pizza & Mì Ý - Chuẩn vị Âu', 10.00, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), 1), -- ID: 2
+('Cơm Trưa Văn Phòng - Nạp năng lượng', 10.00, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), 1), -- ID: 3
+('Thế Giới Gà Rán - Giòn tan rôm rốp', 12.00, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), 1), -- ID: 4
+('Ăn Vặt Thả Ga - Không lo về giá', 20.00, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), 1), -- ID: 5
+('FLASH SALE: 3 Món Best Seller', 30.00, NOW(), DATE_ADD(NOW(), INTERVAL 7 DAY), 1);    -- ID: 6
+
+-- =========================================================
+-- BƯỚC 3: Áp dụng khuyến mãi (Bảng Con)
+-- =========================================================
+
+-- 1. Khuyến mãi Burger (ID Promotion 1) áp dụng cho Category 1
+INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) 
+VALUES (1, NULL, 1, 1);
+
+-- 2. Khuyến mãi Pizza (ID Promotion 2) áp dụng cho Category 2
+INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) 
+VALUES (2, NULL, 2, 1);
+
+-- 3. Khuyến mãi Cơm (ID Promotion 3) áp dụng cho Category 3
+INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) 
+VALUES (3, NULL, 3, 1);
+
+-- 4. Khuyến mãi Gà (ID Promotion 4) áp dụng cho Category 4
+INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) 
+VALUES (4, NULL, 4, 1);
+
+-- 5. Khuyến mãi Ăn Vặt (ID Promotion 5) áp dụng cho Category 5
+INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) 
+VALUES (5, NULL, 5, 1);
+
+-- --- Áp dụng cụ thể cho Từng Món (FLASH SALE) ---
+
+-- Áp dụng cho Pizza Hải sản (Product ID: 7)
+INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) 
+VALUES (6, 7, NULL, 1);
+
+-- Áp dụng cho Gà Rán Combo (Product ID: 15)
+INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) 
+VALUES (6, 15, NULL, 1);
+
+-- Áp dụng cho Burger Tôm (Product ID: 3)
+INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) 
+VALUES (6, 3, NULL, 1);
+
+//Scipt thêm promotion_id vào order
+-- Thêm cột promotion_id vào bảng Orders (cho phép NULL nếu không dùng voucher)
+ALTER TABLE Orders
+ADD COLUMN promotion_id INT NULL AFTER user_id,
+ADD CONSTRAINT fk_order_promotion
+FOREIGN KEY (promotion_id) REFERENCES Promotions(promotion_id);
+-- Nếu cột đã tồn tại
+--ALTER TABLE Orders
+--ADD CONSTRAINT fk_order_promotion
+--FOREIGN KEY (promotion_id) REFERENCES Promotions(promotion_id);
+--Thêm cột amount discount cho order
+ALTER TABLE orders 
+ADD COLUMN discount_amount DECIMAL(15, 2) DEFAULT 0 AFTER subtotal;
