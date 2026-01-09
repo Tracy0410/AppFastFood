@@ -288,3 +288,5 @@ FOREIGN KEY (promotion_id) REFERENCES Promotions(promotion_id);
 --Thêm cột amount discount cho order
 ALTER TABLE orders 
 ADD COLUMN discount_amount DECIMAL(15, 2) DEFAULT 0 AFTER subtotal;
+
+-- Hi Danh
