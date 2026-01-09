@@ -447,30 +447,35 @@ export default class userController {
     static async sendOtp(req, res) {
         try {
             const { email } = req.body;
-
             if (!email) {
-                return res.status(400).json({ success: false, message: 'Vui lòng nhập email' });
+                return res.status(400).json({ success: false, message: "Vui lòng nhập email" });
             }
 
-            // Kiểm tra email có tồn tại trong hệ thống không
             const user = await userModel.findByEmail(email);
             if (!user) {
-                return res.status(404).json({ success: false, message: 'Email không tồn tại trong hệ thống' });
+                return res.status(404).json({ success: false, message: "Email này chưa được đăng ký tài khoản nào." });
             }
+            // 1. Tạo mã OTP ngẫu nhiên 6 số
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-            // Tạo mã OTP ngẫu nhiên 6 số
-            const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiresIn = Date.now() + 5 * 60 * 1000; // 5 phút
 
             // Lưu OTP vào RAM Hết hạn sau 5 phút
-            const expiresIn = Date.now() + 5 * 60 * 1000; // 5 phút
-            otpStore.set(email, { code: otpCode, expireAt: expiresIn });
+            otpStore.set(email, { code: otp, expiresAt: expiresIn});
+
+            console.log(`OTP cho ${email} là: ${otp}`);
 
             // Gửi email
             const mailOptions = {
-                from: process.env.EMAIL_USER,
+                from: `"App Fast Food" <${process.env.EMAIL_USER}>`,
                 to: email,
                 subject: 'Mã xác thực đổi mật khẩu - App FastFood',
-                text: `Mã xác thực của bạn là: ${otpCode}. Mã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này.`
+                html: `
+                    <h3>Xin chào ${user.fullname || 'Bạn'},</h3>
+                    <p>Bạn vừa yêu cầu đặt lại mật khẩu.</p>
+                    <p>Mã xác thực (OTP) của bạn là: <b style="font-size: 20px; color: red;">${otp}</b></p>
+                    <p>Mã này sẽ hết hạn sau 5 phút.</p>
+                `
             };
 
             await transporter.sendMail(mailOptions);
