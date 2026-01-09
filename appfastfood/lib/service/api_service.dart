@@ -12,9 +12,9 @@ import 'dart:convert';
 
 class ApiService {
   static const String baseUrl = 'http://10.59.96.3:8001'; //máy thật
-  static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
+  static const String BaseUrl = 'http://127.0.0.1:8001'; // máy ảo
 
-  static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
+  static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
 
   // Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -759,4 +759,40 @@ class ApiService {
     }
     return []; // Trả về danh sách rỗng nếu lỗi
   }
+  // ================= AI CHAT =================
+ Future<String> chatWithAI({
+  required String question,
+}) async {
+  try {
+    final token = await StorageHelper.getToken();
+    final userId = await StorageHelper.getUserId();
+
+    final url = Uri.parse('$urlEdit/api/ai/chat');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'prompt': question, // ✅ PHẢI LÀ prompt
+        'user_id': userId,  // giữ hay bỏ đều được
+      }),
+    );
+
+   if (response.statusCode == 200) {
+  print('🔥 AI RAW RESPONSE: ${response.body}');
+  final jsonRes = jsonDecode(response.body);
+
+  return jsonRes['answer']?.toString() ?? 'AI chưa có câu trả lời';
+}
+ else {
+      return 'Lỗi AI (${response.statusCode})';
+    }
+  } catch (e) {
+    return 'Không kết nối được AI';
+  }
+}
+
 }
