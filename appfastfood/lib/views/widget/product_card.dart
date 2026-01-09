@@ -14,20 +14,25 @@ class ProductCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: product.imageUrl.isNotEmpty
-                ? Image.network(
-                    product.imageUrl,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 400,
-                        height: 150,
-                        color: Colors.white,
-                        child: Icon(Icons.image_not_supported),
-                      );
-                    },
-                  )
-                : SizedBox(height: 150, child: Icon(Icons.image_not_supported)),
+            child: SizedBox(
+              height: 250,
+              width: 450,
+              child: product.imageUrl.isNotEmpty
+                  ? Image.network(
+                      product.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.white,
+                          child: Icon(Icons.image_not_supported),
+                        );
+                      },
+                    )
+                  : SizedBox(
+                      height: 150,
+                      child: Icon(Icons.image_not_supported),
+                    ),
+            ),
           ),
           SizedBox(height: 8),
           Row(
@@ -58,6 +63,8 @@ class ProductCard extends StatelessWidget {
               Text("${product.price} VNĐ"),
             ],
           ),
+          SizedBox(height: 10),
+          Divider(),
         ],
       ),
     );
