@@ -329,6 +329,22 @@ export default class userModel {
         }
     }
 
+    // Lấy thông tin account qua user_id
+    static async getAccountByUserId(userId) {
+        try {
+            const sql = `
+                SELECT a.account_id, a.password 
+                FROM Account a
+                JOIN Users u ON a.account_id = u.account_id
+                WHERE u.user_id = ?
+            `;
+            const [rows] = await execute(sql, [userId]);
+            return rows[0] || null;
+        } catch (error) {
+            throw new Error('Lỗi lấy thông tin account: ' + error.message);
+        }
+    }
+
     // Hàm này nhiều quá lười try catch deadline dí (T_T)
     static async checkItemInCart(user_id,product_id){
         const sql = `SELECT * FROM carts WHERE user_id = ? AND product_id = ?`;

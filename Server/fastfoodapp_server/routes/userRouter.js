@@ -34,6 +34,7 @@ userRouter.post('/reset-password', userController.resetPassword);
 // Protected routes (Cần Token)
 userRouter.get('/profile', auth, userController.profile);
 userRouter.post('/profile/update', auth, upload.single('image'), userController.updateUserInfo);
+userRouter.post('/profile/change-password', auth, userController.changePassword);
 userRouter.post('/logout', auth, userController.logout);
 
 // Routes yêu thích (favorites)
