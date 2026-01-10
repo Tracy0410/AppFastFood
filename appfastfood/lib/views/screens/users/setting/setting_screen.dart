@@ -64,8 +64,9 @@ class _SettingScreenState extends State<SettingScreen> {
         if (mounted) Navigator.pop(context);
 
         if (success) {
+          // Xóa thành công: Xóa dữ liệu local và logout
           final prefs = await SharedPreferences.getInstance();
-          await prefs.clear();
+          await prefs.clear(); // Xóa sạch Token và Info
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

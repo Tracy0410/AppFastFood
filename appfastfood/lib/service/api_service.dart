@@ -88,10 +88,7 @@ class ApiService {
       final token = await StorageHelper.getToken();
       if (token == null) return false;
 
-      // URL này sẽ ghép thành: http://.../api/delete/5
       final uri = Uri.parse('$urlEdit/api/delete/$userId'); 
-      
-      print("Dang goi API xoa: $uri"); // In ra để check link
 
       final response = await http.delete(
         uri,
@@ -100,9 +97,6 @@ class ApiService {
           'Authorization': 'Bearer $token',
         },
       );
-
-      print("Status Code: ${response.statusCode}"); // Quan trọng: Xem mã lỗi (200, 404, 500?)
-      print("Response Body: ${response.body}");     // Quan trọng: Xem server báo lỗi gì
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
@@ -250,6 +244,50 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Lỗi đặt lại mật khẩu: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> changePassword(
+    String oldPass,
+    String newPass,
+    String confirmPass
+  ) async {
+    try{
+      final String? token = await StorageHelper.getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'Bạn chưa đăng nhập'};
+      }
+
+      final url = Uri.parse('$urlEdit/users/profile/change-password');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'oldPassword': oldPass,
+          'newPassword': newPass,
+          'confirmPassword': confirmPass,
+        })
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true, 
+          'message': data['message'] ?? 'Đổi mật khẩu thành công'
+        };
+      } else {
+        return {
+          'success': false, 
+          'message': data['message'] ?? 'Lỗi không xác định'
+        };
+      }
+    }catch(e){
+      return {'success': false, 'message': 'Lỗi kết nối server'};
     }
   }
 

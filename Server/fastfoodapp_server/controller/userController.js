@@ -369,23 +369,50 @@ export default class userController {
             });
         }
     }
-    
-    // Forget password
-    static async forgetPassword(req, res) {
+
+    // Đổi mật khẩu
+    static async changePassword(req, res) {
         try {
-            const { username,  } = req.body;
-            if (!username || !newPassword) {
-                return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ thông tin' });
+            const userId = req.userId; // Lấy từ token
+            const { oldPassword, newPassword, confirmPassword } = req.body;
+
+            if (!oldPassword || !newPassword || !confirmPassword) {
+                return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ thông tin" });
             }
-            const user = await userModel.findByUsername(username);
-            if (!user) {
-                return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+
+            if (newPassword !== confirmPassword) {
+                return res.status(400).json({ success: false, message: "Mật khẩu xác nhận không khớp" });
             }
-            const hashedPassword = await hash(newPassword, PASSWORD_HASH_ROUNDS);
-            await userModel.updatePassword(user.account_id, hashedPassword);
-            res.status(200).json({ success: true, message: 'Cập nhật mật khẩu thành công' });
+
+            // 1. Lấy thông tin account
+            const account = await userModel.getAccountByUserId(userId);
+            if (!account) {
+                return res.status(404).json({ success: false, message: "Không tìm thấy tài khoản" });
+            }
+
+            // 2. Kiểm tra mật khẩu cũ
+            const isMatch = await compare(oldPassword, account.password);
+            if (!isMatch) {
+                return res.status(400).json({ success: false, message: "Mật khẩu cũ không chính xác" });
+            }
+
+            // 3. Kiểm tra độ mạnh mật khẩu mới (Tái sử dụng hàm validatePassword có sẵn)
+            if (!userController.validatePassword(newPassword)) {
+                 return res.status(400).json({
+                    success: false,
+                    message: 'Mật khẩu mới quá yếu (cần 8 ký tự, hoa, thường, số, ký tự đặc biệt)'
+                });
+            }
+
+            // 4. Mã hóa và lưu
+            const hashedNewPassword = await hash(newPassword, PASSWORD_HASH_ROUNDS);
+            await userModel.updatePassword(account.account_id, hashedNewPassword);
+
+            return res.status(200).json({ success: true, message: "Đổi mật khẩu thành công" });
+
         } catch (error) {
-            res.status(500).json({ success: false, message: 'Lỗi server' });
+            console.error("Lỗi đổi mật khẩu:", error);
+            return res.status(500).json({ success: false, message: "Lỗi Server" });
         }
     }
 
