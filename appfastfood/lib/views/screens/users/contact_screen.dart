@@ -20,6 +20,7 @@ class ContactScreen extends StatelessWidget {
     );
   }
 
+  // GIỮ NGUYÊN HEADER CỦA BẠN
   Widget _header(BuildContext context) => Container(
         padding: const EdgeInsets.fromLTRB(15, 50, 15, 15),
         color: const Color(0xFFFFD54F),
@@ -31,7 +32,7 @@ class ContactScreen extends StatelessWidget {
               child: const Icon(Icons.arrow_back_ios, color: Colors.white),
             ),
             const Text(
-              "Trợ Giúp AI",
+              "Liên Hệ Với Cửa Hàng",
               style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -49,45 +50,65 @@ class ContactScreen extends StatelessWidget {
         ),
       );
 
+  // GIỮ NGUYÊN SUBHEADER CỦA BẠN
   Widget _subHeader() => Container(
+        width: double.infinity, // Thêm width infinity để full màn hình
         padding: const EdgeInsets.all(12),
         color: const Color(0xFFFFF8E1),
         child: const Text(
           "Hỏi đáp tự động với AI",
+          textAlign: TextAlign.center, // Canh giữa cho đẹp giống ảnh
           style: TextStyle(
               fontWeight: FontWeight.w600, color: Color(0xFFE65100)),
         ),
       );
 
-  Widget _menu(BuildContext context) => Padding(
+  // THAY ĐỔI: GOM 2 MỤC VÀO TRONG 1 CÁI EXPANSION TILE
+  Widget _menu(BuildContext context) => SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _item(
-              icon: Icons.phone,
-              text: "Hotline: 0306231094",
-              onTap: () {
-                Clipboard.setData(
-                    const ClipboardData(text: "0306231094"));
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Đã sao chép")));
-              },
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: ExpansionTile(
+            shape: const Border(), // Bỏ viền mặc định khi mở
+            title: const Text(
+              "Liên hệ với cửa hàng",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 15),
-            _item(
-              icon: Icons.smart_toy,
-              text: "Chat với Trợ lý ảo",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AIChatScreen()),
-                );
-              },
-            ),
-          ],
+            childrenPadding: const EdgeInsets.fromLTRB(15, 0, 15, 15),
+            children: [
+              // MỤC 1: HOTLINE (Giữ nguyên logic của bạn)
+              _item(
+                icon: Icons.phone,
+                text: "Hotline: 0306231094",
+                onTap: () {
+                  Clipboard.setData(
+                      const ClipboardData(text: "0306231094"));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Đã sao chép")));
+                },
+              ),
+              const SizedBox(height: 10),
+              // MỤC 2: CHAT AI (Giữ nguyên logic của bạn)
+              _item(
+                icon: Icons.smart_toy,
+                text: "Chat với Trợ lý ảo",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AIChatScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       );
 
+  // GIỮ NGUYÊN HÀM ITEM CỦA BẠN
   Widget _item(
           {required IconData icon,
           required String text,
@@ -97,6 +118,7 @@ class ContactScreen extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
+            color: Colors.grey[50], // Chỉnh nhẹ màu nền item con cho dễ nhìn
             borderRadius: BorderRadius.circular(15),
             border: Border.all(color: Colors.grey.shade200),
           ),

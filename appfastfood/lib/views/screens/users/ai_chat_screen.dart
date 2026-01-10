@@ -12,7 +12,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  final ApiService apiService = ApiService(); // ✅ KHỞI TẠO SERVICE
+  final ApiService apiService = ApiService();
 
   final List<Map<String, dynamic>> messages = [];
   bool _isLoading = false;

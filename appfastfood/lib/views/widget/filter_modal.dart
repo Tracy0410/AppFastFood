@@ -94,23 +94,55 @@ class _FilterModalState extends State<FilterModal> {
 
           const SizedBox(height: 20),
 
-          // 3. Giá & Nút Check
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween, // Cần 2 phần tử để đẩy nhau ra 2 đầu
             children: [
-              const Text("Giá tối đa", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              ElevatedButton(
-                onPressed: () {
-                  // Trả về maxPrice
-                  widget.onApply(_selectedCategoryId, _selectedRating, _currentMaxPrice);
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE95322),
-                  shape: const CircleBorder(),
-                  padding: const EdgeInsets.all(12),
-                ),
-                child: const Icon(Icons.check, color: Colors.white),
+              // PHẦN TỬ 1: Chữ nằm bên trái (Thêm cái này vào nút mới bay sang phải đc)
+              const Text(
+                "Giá tối đa", 
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+              ),
+
+              // PHẦN TỬ 2: Cụm nút nằm bên phải
+              Row(
+                children: [
+                  // --- NÚT X (HỦY LỌC & THOÁT) ---
+                  ElevatedButton(
+                    onPressed: () {
+                      widget.onApply("All", 0, 500000); 
+                      // 2. Đóng Modal quay về Home
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade400, // Màu xám nhạt
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(12),
+                      elevation: 0, 
+                      minimumSize: Size.zero, // Giúp nút gọn
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Icon(Icons.close, color: Colors.white, size: 20),
+                  ),
+
+                  const SizedBox(width: 12), // Khoảng cách giữa 2 nút
+
+                  // --- NÚT V (ÁP DỤNG) ---
+                  ElevatedButton(
+                    onPressed: () {
+                      // Áp dụng các giá trị đang chọn
+                      widget.onApply(_selectedCategoryId, _selectedRating, _currentMaxPrice);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE95322),
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(12),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Icon(Icons.check, color: Colors.white, size: 20),
+                  ),
+                ],
               )
             ],
           ),
