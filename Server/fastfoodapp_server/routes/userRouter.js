@@ -24,6 +24,9 @@ userRouter.post('/login', userController.login);
 userRouter.post('/register', userController.register);
 userRouter.delete('/delete/:id', auth, userController.deleteAccount);
 
+// Route nhận kết quả từ VNPay (Method là GET nhé)
+userRouter.get('/payment/vnpay_return', userController.vnpayReturn);
+
 // Routes quên mật khẩu
 userRouter.post('/send-otp', userController.sendOtp);
 userRouter.post('/reset-password', userController.resetPassword);
@@ -58,4 +61,6 @@ userRouter.get('/addresses', auth,userController.getAddressList);
 userRouter.post('/addresses/add', auth, userController.addAddress);
 userRouter.put('/addresses/setup', auth, userController.setDefaultAddress);
 userRouter.delete('/addresses/delete', auth, userController.deleteAddress);
+
+userRouter.post('/promotions/check-available', userController.checkAvailablePromotions);
 export default userRouter;

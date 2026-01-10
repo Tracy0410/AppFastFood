@@ -16,7 +16,6 @@ class SettingScreen extends StatefulWidget {
 class _SettingScreenState extends State<SettingScreen> {
   final ApiService _apiService = ApiService();
 
-  // --- 1. HÀM HIỂN THỊ HỘP THOẠI XÁC NHẬN ---
   Future<void> _confirmDeleteAccount() async {
     return showDialog(
       context: context,
@@ -36,8 +35,8 @@ class _SettingScreenState extends State<SettingScreen> {
             TextButton(
               child: const Text("Đồng ý", style: TextStyle(color: Colors.red)),
               onPressed: () {
-                Navigator.of(context).pop(); // Đóng dialog
-                _deleteAccount(); // Gọi hàm xử lý xóa
+                Navigator.of(context).pop();
+                _deleteAccount();
               },
             ),
           ],
@@ -46,9 +45,7 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  // --- 2. HÀM XỬ LÝ GỌI API XÓA (SOFT DELETE) ---
   Future<void> _deleteAccount() async {
-    // Hiển thị loading
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -76,15 +73,13 @@ class _SettingScreenState extends State<SettingScreen> {
               const SnackBar(content: Text("Tài khoản đã được xóa thành công.")),
             );
 
-            // --- SỬA ĐỔI TẠI ĐÂY: Chuyển về HomePageScreen ---
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const HomePageScreen()), 
-              (route) => false, // Xóa hết lịch sử stack để không back lại được trang cài đặt
+              (route) => false,
             );
           }
         } else {
-          // API trả về false
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Có lỗi xảy ra, vui lòng thử lại sau.")),
@@ -92,7 +87,6 @@ class _SettingScreenState extends State<SettingScreen> {
           }
         }
       } else {
-        // Không tìm thấy user ID trong máy
         if (mounted) Navigator.pop(context);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -120,8 +114,6 @@ class _SettingScreenState extends State<SettingScreen> {
         children: [
           // Header
           const TopBarPage(showBackButton: true, title: "Cài đặt"),
-
-          // Danh sách các mục cài đặt
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
@@ -145,7 +137,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   icon: Icons.person_off_outlined,
                   title: "Xóa Tài Khoản",
                   onTap: () {
-                    _confirmDeleteAccount(); // Gọi dialog xác nhận
+                    _confirmDeleteAccount();
                   },
                 ),
               ],
@@ -156,7 +148,6 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  // Widget tái sử dụng để vẽ từng dòng cài đặt
   Widget _buildSettingItem({
     required IconData icon,
     required String title,

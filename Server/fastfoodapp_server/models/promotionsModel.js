@@ -17,6 +17,7 @@ class PromotionModel {
         const [rows] = await execute(sql);
         return rows;
     }
+    
 }
 
 export default PromotionModel;

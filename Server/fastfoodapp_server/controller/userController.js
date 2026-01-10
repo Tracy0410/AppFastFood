@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken';
 import userModel from '../models/userModel.js';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
+import moment from 'moment'; // ngày giờ
+import qs from 'qs'; //tạo query string
+import crypto from 'crypto'; // Mã hóa chữ kí
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -18,6 +21,14 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS  // Mật khẩu ứng dụng (App Password)
     }
 });
+
+
+const vnp_Config = {
+    tmnCode: "I49MR19A",
+    hashSecret: "1VOXW52GV9VU09AUCYW3O4IHCJHWQBKT",
+    url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+    returnUrl: "http://192.168.100.248:8001/api/payment/vnpay_return"
+}
 
 export default class userController {
 
@@ -694,9 +705,16 @@ export default class userController {
 
     static async checkout(req,res){
         try {
+            
             const userId = req.userId;
             const { items, shippingAddressId, note, promotionId, paymentMethod, isBuyFromCart } = req.body;
-
+            console.log("Đã nhận item: ",items);
+            console.log("Đã nhận AddressId: ",shippingAddressId);
+            console.log("Đã nhận note: ",note);
+            console.log("Đang tạo payment: ",paymentMethod);
+            console.log("Đã nhận isBuyFromCart: ",isBuyFromCart);
+            console.log("Đã nhận Promotion_id: ",promotionId);
+            console.log("UserId: ",userId);
             if (!items || items.length === 0) return res.status(400).json({ message: 'Giỏ hàng trống' });
             if (!shippingAddressId) return res.status(400).json({ message: 'Thiếu địa chỉ giao hàng' });
 
@@ -704,16 +722,187 @@ export default class userController {
                 userId,
                 items,
                 shippingAddressId,
-                note,
-                promotionId,
-                paymentMethod,
+                note: note || "",
+                promotionId: promotionId || null,
+                paymentMethod: paymentMethod || 'COD',
                 isBuyFromCart // true/false: để biết có xóa giỏ hàng cũ không
             });
 
-            res.status(201).json(result);
+            if(paymentMethod == 'VNPAY'){
+                console.log("Đơn hàng VNPay ID: ",result.order_id);
+                // Lấy IP của user (Bắt buộc cho VNPay)
+                const ipAddr = req.headers['x-forwarded-for'] ||
+                    req.connection.remoteAddress ||
+                    req.socket.remoteAddress ||
+                    req.connection.socket.remoteAddress || 
+                    '192.168.100.248';
+                // 3. Tạo URL thanh toán
+                const paymentUrl = createVnpayUrl({
+                    orderId: result.order_id,
+                    amount: result.total_amount,
+                    bankCode: '', // Để trống để khách tự chọn ngân hàng
+                    ipAddr: ipAddr
+                });
+                return res.status(200).json({
+                    success: true,
+                    paymentMethod: 'VNPAY',
+                    message: "Vui lòng thanh toán",
+                    order_id: result.order_id,
+                    paymentUrl: paymentUrl // <--- Frontend nhận link này và window.location.href = link
+                });
+            }
+
+            // Nếu là COD
+            return res.status(200).json({
+                success: true,
+                paymentMethod: 'COD',
+                order_id: result.order_id,
+                message: "Đặt hàng thành công"
+            });
         } catch (error) {
             console.error("Checkout Error:", error);
             res.status(500).json({ success: false, message: 'Đặt hàng thất bại: ' + error.message });
         }
     }
+    static async checkAvailablePromotions(req, res) {
+        try {
+            const { items } = req.body; 
+            // items gửi lên từ Flutter: [{product_id: 1, category_id: 2}, ...]
+            
+            const promotions = await userModel.getApplicablePromotions(items);
+
+            res.status(200).json({
+                success: true,
+                data: promotions
+            });
+        } catch (error) {
+            console.error("Check Promo Error:", error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // --- HÀM XỬ LÝ KHI VNPAY RETURN (Callback) ---
+    // Route này sẽ là: GET /api/payment/vnpay_return
+    static async vnpayReturn(req, res) {
+        try {
+            console.log("VNPay Return Params:", req.query);
+            
+            // Dùng cú pháp Spread (...) để copy sang một object chuẩn, lúc này nó mới có hàm hasOwnProperty
+            let vnp_Params = { ...req.query };
+            const secureHash = vnp_Params['vnp_SecureHash']; // Chữ ký VNPay gửi về
+
+            // Xóa 2 tham số hash để tính toán lại verify
+            delete vnp_Params['vnp_SecureHash'];
+            delete vnp_Params['vnp_SecureHashType'];
+
+            // Sắp xếp lại tham số (bắt buộc)
+            vnp_Params = sortObject(vnp_Params);
+
+            // Mã hóa lại để kiểm tra
+            const signData = qs.stringify(vnp_Params, { encode: false });
+            const hmac = crypto.createHmac("sha512", vnp_Config.hashSecret);
+            const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
+
+            // 1. Kiểm tra chữ ký bảo mật
+            if (secureHash === signed) {
+                // Chữ ký hợp lệ -> Check mã lỗi
+                const orderId = vnp_Params['vnp_TxnRef'];
+                const rspCode = vnp_Params['vnp_ResponseCode'];
+
+                if (rspCode === '00') {
+                    // --- THANH TOÁN THÀNH CÔNG ---
+                    console.log(`Đơn hàng ${orderId} thanh toán thành công!`);
+                    
+                    // Update Database
+                    await userModel.updatePaymentStatus(orderId, 'PAID');
+
+                    // Trả về giao diện HTML cho App hiển thị
+                    // Bạn có thể design đẹp hơn hoặc dùng res.render nếu dùng template engine (EJS, Pug)
+                    return res.send(`
+                        <div style="text-align: center; padding-top: 50px;">
+                            <h1 style="color: green;">Thanh toán thành công!</h1>
+                            <p>Mã đơn hàng: ${orderId}</p>
+                            <p>Bạn có thể đóng cửa sổ này và quay lại ứng dụng.</p>
+                        </div>
+                    `);
+                } else {
+                    // --- GIAO DỊCH THẤT BẠI / HỦY BỎ ---
+                    console.log(`Đơn hàng ${orderId} thanh toán thất bại. Mã lỗi: ${rspCode}`);
+                    
+                    await userModel.updatePaymentStatus(orderId, 'FAILED');
+
+                    return res.send(`
+                        <div style="text-align: center; padding-top: 50px;">
+                            <h1 style="color: red;">Thanh toán thất bại!</h1>
+                            <p>Vui lòng thử lại.</p>
+                        </div>
+                    `);
+                }
+            } else {
+                // Chữ ký không khớp (Có dấu hiệu giả mạo)
+                return res.send("Checksum failed");
+            }
+
+        } catch (error) {
+            console.error("Lỗi VNPay Return:", error);
+            res.status(500).send("Lỗi Server");
+        }
+    }
+
+}
+// --- HÀM PHỤ TRỢ: TẠO URL VNPAY (Helper Function) ---
+// Để bên ngoài class userController cho gọn
+function createVnpayUrl({ orderId, amount, bankCode, ipAddr }) {
+    process.env.TZ = 'Asia/Ho_Chi_Minh';
+    const date = new Date();
+    const createDate = moment(date).format('YYYYMMDDHHmmss');
+
+    let vnp_Params = {};
+    vnp_Params['vnp_Version'] = '2.1.0';
+    vnp_Params['vnp_Command'] = 'pay';
+    vnp_Params['vnp_TmnCode'] = vnp_Config.tmnCode;
+    vnp_Params['vnp_Locale'] = 'vn';
+    vnp_Params['vnp_CurrCode'] = 'VND';
+    vnp_Params['vnp_TxnRef'] = orderId; // Mã đơn hàng
+    vnp_Params['vnp_OrderInfo'] = 'Thanh toan don hang #' + orderId;
+    vnp_Params['vnp_OrderType'] = 'other';
+    vnp_Params['vnp_Amount'] = amount * 100; // QUAN TRỌNG: VNPay tính đơn vị đồng, nên phải nhân 100
+    vnp_Params['vnp_ReturnUrl'] = vnp_Config.returnUrl;
+    vnp_Params['vnp_IpAddr'] = ipAddr;
+    vnp_Params['vnp_CreateDate'] = createDate;
+
+    if (bankCode !== null && bankCode !== '') {
+        vnp_Params['vnp_BankCode'] = bankCode;
+    }
+
+    // Sắp xếp tham số theo a-z (Bắt buộc để tạo chữ ký đúng)
+    vnp_Params = sortObject(vnp_Params);
+
+    // Tạo chữ ký bảo mật (Secure Hash)
+    const signData = qs.stringify(vnp_Params, { encode: false });
+    const hmac = crypto.createHmac("sha512", vnp_Config.hashSecret);
+    const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest("hex");
+    
+    vnp_Params['vnp_SecureHash'] = signed;
+    
+    const finalUrl = vnp_Config.url + '?' + qs.stringify(vnp_Params, { encode: false });
+
+    return finalUrl;
+}
+
+// Hàm sắp xếp object (VNPay yêu cầu)
+function sortObject(obj) {
+    let sorted = {};
+    let str = [];
+    let key;
+    for (key in obj){
+        if (obj.hasOwnProperty(key)) {
+            str.push(encodeURIComponent(key));
+        }
+    }
+    str.sort();
+    for (key = 0; key < str.length; key++) {
+        sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+    }
+    return sorted;
 }

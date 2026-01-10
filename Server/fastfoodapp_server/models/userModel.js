@@ -148,7 +148,7 @@ export default class userModel {
             const sql=`
                 SELECT a.* FROM users u 
                 JOIN addresses a ON u.user_id = a.user_id
-                WHERE u.user_id = ?
+                WHERE u.user_id = ? AND a.status = 1
             `;
             const [rows] = await execute(sql,[userId]);
             return rows;
@@ -458,6 +458,37 @@ export default class userModel {
             items: calculatedItems
         };
     }
+    static async getApplicablePromotions(items) {
+        // items format: [{product_id: 1, category_id: 2}, ...]
+        if (!items || items.length === 0) return [];
+
+        // Lấy danh sách ID để query
+        const productIds = items.map(i => i.product_id).filter(id => id);
+        const categoryIds = items.map(i => i.category_id).filter(id => id);
+
+        // Trick: Nếu mảng rỗng thì để [-1] để SQL không lỗi cú pháp
+        const sqlProductIds = productIds.length > 0 ? productIds : [-1];
+        const sqlCategoryIds = categoryIds.length > 0 ? categoryIds : [-1];
+
+        const query = `
+            SELECT DISTINCT p.promotion_id, p.name, p.discount_percent, p.start_date, p.end_date
+            FROM Promotions p
+            JOIN Promotion_Details pd ON p.promotion_id = pd.promotion_id
+            WHERE p.status = 1 
+            AND NOW() BETWEEN p.start_date AND p.end_date
+            AND (
+                pd.product_id IN (?) 
+                OR 
+                pd.category_id IN (?)
+            )
+        `;
+
+        const [rows] = await db.query(query, [sqlProductIds, sqlCategoryIds]);
+
+        console.log(rows);
+        return rows;
+    }
+
 
     /**
      * API 1: XEM TRƯỚC ĐƠN HÀNG (Preview)
@@ -491,7 +522,15 @@ export default class userModel {
             // 1. Tính toán lại lần cuối (Bảo mật giá)
             // Truyền connection vào để nó dùng chung transaction này
             const calc = await userModel.calculateOrderRaw(connection, items, promotionId, shippingAddressId);
-
+            console.log("item",items);
+            console.log("item2",calc.promotionId);
+            console.log("item3",shippingAddressId);
+            console.log("item4",calc.subtotal);
+            console.log("item5",calc.taxFee);
+            console.log("item6",calc.totalAmount);
+            console.log("item7",calc.totalDiscountAmount);
+            console.log("item8",note);
+            console.log("item9",userId);
             // 2. Insert bảng Orders
             const [orderResult] = await connection.execute(
                 `INSERT INTO Orders (
@@ -514,6 +553,12 @@ export default class userModel {
 
             // 3. Insert bảng Order_Details
             for (const item of calc.items) {
+                console.log("item10",newOrderId);
+                console.log("item11",item.product_id);
+                console.log("item12",item.quantity);
+                console.log("item13",item.unit_price);
+                console.log("item14",item.promotion_detail_id);
+                console.log("item15",item.final_line_price);
                 await connection.execute(
                     `INSERT INTO Order_Details(order_id, product_id, quantity, unit_price, promotion_detail_id, final_line_price)
                      VALUES (?,?,?,?,?,?)`,
@@ -530,11 +575,11 @@ export default class userModel {
 
             // 5. Xóa giỏ hàng (Nếu mua từ giỏ)
             if (isBuyFromCart && items.length > 0) {
-                const productIds = items.map(i => i.product_id); // calc.items đã chuẩn hóa key
+                const productIds = calc.items.map(i => i.product_id); // calc.items đã chuẩn hóa key
                 // Tạo string (?,?,?) dynamic
                 const placeholders = productIds.map(() => '?').join(',');
                 const deleteParams = [userId, ...productIds];
-                
+                console.log("Deleting Cart Items:", deleteParams);
                 await connection.execute(
                     `DELETE FROM Carts WHERE user_id = ? AND product_id IN (${placeholders})`,
                     deleteParams
@@ -569,4 +614,23 @@ export default class userModel {
         }
     }
 
+    // Cập nhật trạng thái thanh toán
+    static async updatePaymentStatus(orderId, status) {
+        try {
+            // Update bảng Orders
+            // status ở đây truyền vào là 'PAID' hoặc 'FAILED'
+            const sqlOrder = `UPDATE Orders SET payment_status = ? WHERE order_id = ?`;
+            await execute(sqlOrder, [status, orderId]);
+            
+            // Update bảng Payment
+            const sqlPayment = `UPDATE Payment SET status = ? WHERE order_id = ?`;
+            await execute(sqlPayment, [status, orderId]);
+            
+            return true;
+        } catch (e) {
+            console.error("Lỗi update payment:", e);
+            throw new Error(e.message);
+        }
+    }
+    
 }

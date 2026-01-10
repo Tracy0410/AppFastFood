@@ -3,6 +3,7 @@ import 'package:appfastfood/models/address.dart';
 import 'package:appfastfood/models/cartItem.dart';
 import 'package:appfastfood/models/user.dart';
 import 'package:appfastfood/models/promotion.dart';
+import 'package:appfastfood/models/voucher.dart';
 import 'package:appfastfood/utils/storage_helper.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:http/http.dart' as http;
@@ -11,7 +12,7 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.68.37:8001'; //máy thật
+  static const String baseUrl = 'http://192.168.100.248:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
   static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
@@ -215,10 +216,7 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonResponse;
       } else {
-        return {
-          'success': false,
-          'message': jsonResponse['message'] ?? 'Lỗi không xác định'
-        };
+        throw Exception(jsonResponse['message'] ?? 'Gửi OTP thất bại');
       }
     } catch (e) {
       throw Exception('Lỗi gửi OTP: $e');
@@ -226,7 +224,11 @@ class ApiService {
   }
 
   // Đặt lại mật khẩu
-  Future<Map<String, dynamic>> resetPassword(String email, String otp, String newPassword) async {
+  Future<Map<String, dynamic>> resetPassword(
+    String email,
+    String otp,
+    String newPassword,
+  ) async {
     try {
       final url = Uri.parse('$urlEdit/api/reset-password');
 
@@ -704,7 +706,7 @@ class ApiService {
     required List<Map<String, dynamic>> items,
     required int shippingAddressId,
     int? promotionId,
-    String note = '',
+    String? note = '',
     String paymentMethod = 'COD',
     bool isBuyFromCart = false,
   }) async {
@@ -791,5 +793,78 @@ class ApiService {
       print("Lỗi kết nối filterProducts: $e");
     }
     return []; // Trả về danh sách rỗng nếu lỗi
+  }
+
+ Future<String> chatWithAI({
+  required String question,
+}) async {
+  try {
+    final token = await StorageHelper.getToken();
+    final userId = await StorageHelper.getUserId();
+
+    final url = Uri.parse('$urlEdit/api/ai/chat');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'prompt': question, // ✅ PHẢI LÀ prompt
+        'user_id': userId,  // giữ hay bỏ đều được
+      }),
+    );
+
+   if (response.statusCode == 200) {
+  print('🔥 AI RAW RESPONSE: ${response.body}');
+  final jsonRes = jsonDecode(response.body);
+
+  return jsonRes['answer']?.toString() ?? 'AI chưa có câu trả lời';
+}
+ else {
+      return 'Lỗi AI (${response.statusCode})';
+    }
+  } catch (e) {
+    return 'Không kết nối được AI';
+  }
+}
+
+  static Future<List<Voucher>> checkAvailablePromotions(
+    List<dynamic> cartItems,
+  ) async {
+    try {
+      // 1. Map dữ liệu cartItems sang format Server cần: [{product_id: 1, category_id: 2}, ...]
+      // Lưu ý: Sửa 'productId' / 'categoryId' cho đúng tên biến trong Model Cart của bạn
+      final itemsPayload = cartItems
+          .map((e) => {"product_id": e.productId, "category_id": e.categoryId})
+          .toList();
+
+      // 2. Gọi API
+      final response = await http.post(
+        Uri.parse('$urlEdit/api/promotions/check-available'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"items": itemsPayload}),
+      );
+
+      // 3. Xử lý kết quả
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+
+        if (jsonResponse['success'] == true) {
+          final List<dynamic> data = jsonResponse['data'];
+          // Convert List json -> List Voucher
+          return data.map((json) => Voucher.fromJson(json)).toList();
+        } else {
+          // Server trả về success: false
+          throw Exception(jsonResponse['message'] ?? "Lỗi không xác định");
+        }
+      } else {
+        throw Exception("Lỗi kết nối Server: ${response.statusCode}");
+      }
+    } catch (e) {
+      // Ném lỗi ra để bên UI bắt và hiển thị
+      throw Exception("Lỗi tải voucher: $e");
+    }
   }
 }
