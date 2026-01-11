@@ -24,6 +24,8 @@ userRouter.post('/login', userController.login);
 userRouter.post('/register', userController.register);
 // Route nhận kết quả từ VNPay (Method là GET nhé)
 userRouter.get('/payment/vnpay_return', userController.vnpayReturn);
+userRouter.delete('/delete/:id', auth, userController.deleteAccount);
+
 // Routes quên mật khẩu
 userRouter.post('/send-otp', userController.sendOtp);
 userRouter.post('/reset-password', userController.resetPassword);

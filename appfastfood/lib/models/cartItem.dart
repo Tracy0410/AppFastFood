@@ -1,6 +1,7 @@
 class CartItem {
   final int cartId;
   final int productId;
+  final int categoryId;
   final String name;
   final double price;
   final String imageUrl;
@@ -10,6 +11,7 @@ class CartItem {
   CartItem({
     required this.cartId,
     required this.productId,
+    this.categoryId = 0,
     required this.name,
     required this.price,
     required this.imageUrl,
@@ -21,6 +23,7 @@ class CartItem {
     return CartItem(
       cartId: json['cart_id'] ?? 0,
       productId: json['product_id'] ?? 0,
+      categoryId: json['category_id'] ?? 0,
       name: json['name'] ?? '',
       // Xử lý giá tiền: JSON trả về String "55000.00" -> cần parse
       price: double.tryParse(json['price'].toString()) ?? 0.0,

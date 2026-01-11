@@ -1,14 +1,19 @@
 class OrderItemReq {
   final int productId;
+  final int categoryId; // <--- 1. THÊM DÒNG NÀY
   final int quantity;
   final String note;
+
   OrderItemReq({
     required this.productId,
+    required this.categoryId, // <--- 2. THÊM VÀO CONSTRUCTOR
     required this.quantity,
     this.note = '',
   });
+
   Map<String, dynamic> toJson() => {
-    'productId': productId,
+    'productId': productId, // (Lưu ý: Backend thường dùng snake_case)
+    'categoryId': categoryId, // <--- 3. GỬI LÊN CHO BACKEND (Nếu cần)
     'quantity': quantity,
     'note': note,
   };

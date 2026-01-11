@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:appfastfood/utils/app_colors.dart';
 import 'package:appfastfood/views/screens/users/home_screen.dart';
 import 'package:appfastfood/views/screens/users/info/profile_screen.dart';
-import 'package:appfastfood/views/screens/users/setting_screen.dart';
+import 'package:appfastfood/views/screens/users/setting/setting_screen.dart';
 import 'package:appfastfood/views/screens/welcome_screen.dart';
 import 'package:appfastfood/views/screens/users/home_interface/support_screen.dart';
+import 'package:appfastfood/views/screens/users/contact_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/user.dart';
@@ -162,7 +164,12 @@ class _SideMenuState extends State<SideMenu> {
                   () {},
                 ),
                 _buildMenuItem(Icons.credit_card, "Phương Thức Thanh Toán", () {}),
-                _buildMenuItem(Icons.phone_in_talk_outlined, "Liên Hệ Với Cửa Hàng", () {}),
+                _buildMenuItem(Icons.phone_in_talk_outlined, "Liên Hệ Với Cửa Hàng", () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ContactScreen()),
+                  );
+                }),
               ] else ...[
                 _buildMenuItem(Icons.login, "Đăng Nhập / Đăng Ký", () {
                   Navigator.pop(context);
@@ -192,30 +199,90 @@ class _SideMenuState extends State<SideMenu> {
               // C. NÚT ĐĂNG XUẤT
               if (_isLoggedIn)
                 _buildMenuItem(Icons.logout, "Đăng Xuất", () {
-                  showDialog(
+                  showModalBottomSheet(
                     context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text("Đăng xuất"),
-                      content: const Text(
-                        "Bạn có chắc chắn muốn đăng xuất không?",
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("Hủy"),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _logout();
-                          },
-                          child: const Text(
-                            "Đồng ý",
-                            style: TextStyle(color: Colors.red),
+                    backgroundColor: Colors.transparent, // Để hiển thị bo góc
+                    isScrollControlled: true, // Cho phép tùy chỉnh chiều cao tốt hơn
+                    builder: (context) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(30), // Bo góc trên giống hình
                           ),
                         ),
-                      ],
-                    ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min, // Chỉ chiếm chiều cao cần thiết
+                          children: [
+                            const Text(
+                              "Bạn Có Chắc Chắn Muốn\nĐăng Xuất Không?",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                                height: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                            Row(
+                              children: [
+                                // Nút Hủy
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFFFE6DE),
+                                      foregroundColor: AppColors.primaryOrange,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "Hủy",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 15),
+                                // Nút Đăng Xuất
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _logout();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primaryOrange,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "Đăng Xuất",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                        ),
+                      );
+                    },
                   );
                 }),
             ],

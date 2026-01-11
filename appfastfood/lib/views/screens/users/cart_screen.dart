@@ -1,5 +1,6 @@
 import 'package:appfastfood/models/cartItem.dart';
 import 'package:appfastfood/models/checkout.dart';
+import 'package:appfastfood/models/voucher.dart';
 import 'package:appfastfood/service/api_service.dart';
 import 'package:appfastfood/views/screens/users/checkout_screen.dart';
 import 'package:appfastfood/views/widget/product_card_cart.dart';
@@ -18,7 +19,6 @@ class _CartScreenState extends State<CartScreen> {
   bool _isLoading = true;
   double _subTotal = 0.0;
   final currentFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
-
   final Set<int> _selecteItem = {};
 
   @override
@@ -70,6 +70,7 @@ class _CartScreenState extends State<CartScreen> {
     List<OrderItemReq> itemsToCheckout = selectedCartItems.map((item) {
       return OrderItemReq(
         productId: item.productId,
+        categoryId: item.categoryId,
         quantity: item.quantity,
         note: item.note ?? "", // Nếu note null thì để rỗng
       );

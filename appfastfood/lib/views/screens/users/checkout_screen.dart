@@ -1,3 +1,4 @@
+import 'package:appfastfood/models/cartItem.dart';
 import 'package:appfastfood/models/voucher.dart';
 import 'package:appfastfood/views/screens/users/info/address/address_list.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +7,6 @@ import '../../../service/api_service.dart';
 import '../../../models/checkout.dart';
 import 'package:appfastfood/models/address.dart';
 import 'package:url_launcher/url_launcher.dart';
-// 1. IMPORT MÀN HÌNH KHUYẾN MÃI (Sửa lại đường dẫn cho đúng file của bạn)
 import 'package:appfastfood/views/screens/users/info/promotion_checkout_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -34,9 +34,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Voucher? _selectedPromotion; // Lưu object Voucher đã chọn
   String _paymentMethod = "COD";
 
+  int promotionId = 0;
+
   @override
   void initState() {
     super.initState();
+    promotionId = 0;
     _loadDefaultAddress();
   }
 
@@ -48,12 +51,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   // --- 2. HÀM CHỌN VOUCHER (MỚI THÊM) ---
   void _onSelectVoucher() async {
+    List<CartItem> tempCartItems = widget.inputItems.map((item) {
+      return CartItem(
+        cartId: 0, // Không quan trọng
+        productId: item.productId,
+        categoryId: item.categoryId, // QUAN TRỌNG: Phải có trường này
+        name: "", // Màn hình check voucher không cần tên, chỉ cần ID để check
+        price: 0,
+        imageUrl: "",
+        quantity: item.quantity,
+        note: item.note,
+      );
+    }).toList();
     // Mở màn hình PromotionScreen, truyền danh sách món ăn qua để lọc
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => PromotionCheckoutScreen(
-          cartItems: widget.inputItems, // Truyền items qua đây
+          cartItems: tempCartItems, // Truyền items qua đây
         ),
       ),
     );
@@ -152,7 +167,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     // promotionId: _selectedPromotion?.id
     final result = await _apiService.previewOrder(
       items: itemsMap,
-      promotionId: _selectedPromotion?.id, // <--- SỬA Ở ĐÂY
+      promotionId: _selectedPromotion?.id,
       shippingAddressId: _currentAddress?.addressId,
     );
 
@@ -189,7 +204,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final res = await _apiService.createOrder(
         items: itemsMap,
         shippingAddressId: _currentAddress!.addressId,
-        promotionId: _selectedPromotion?.id, // <--- SỬA Ở ĐÂY (Gửi ID)
+        promotionId: _selectedPromotion?.id,
         paymentMethod: _paymentMethod,
         isBuyFromCart: widget.isBuyFromCart,
         note: _noteController.text.trim(),
@@ -239,6 +254,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         SnackBar(content: Text("Lỗi kết nối: $e"), backgroundColor: Colors.red),
       );
     }
+  }
+  // --- 👇 HÀM TÍNH TOÁN LOGIC 20% ---
+
+  // 1. Tính số tiền được giảm
+  double get _calculateDiscount {
+    if (_data == null) return 0;
+
+    // LOGIC CỦA BẠN: Nếu mua từ giỏ và chưa chọn mã -> Giảm 20%
+    if (widget.isBuyFromCart && promotionId == 0) {
+      return _data!.subtotal * 0.2;
+    }
+
+    // Ngược lại: Lấy theo API (nếu có voucher)
+    return _data!.totalDiscount;
+  }
+
+  // 2. Tính tổng tiền phải thanh toán cuối cùng
+  double get _calculateFinalTotal {
+    if (_data == null) return 0;
+    // Tổng = Tiền hàng - Giảm giá + Ship + Thuế
+    return _data!.subtotal -
+        _calculateDiscount +
+        _data!.shippingFee +
+        _data!.taxFee;
   }
 
   @override
@@ -520,10 +559,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           "Tổng tiền hàng",
                           currency.format(_data!.subtotal),
                         ),
-                        if (_data!.totalDiscount > 0)
+                        if (_calculateDiscount > 0)
                           _buildSummaryRow(
-                            "Khuyến mãi",
-                            "-${currency.format(_data!.totalDiscount)}",
+                            // Kiểm tra xem đang giảm theo kiểu nào để đặt tên
+                            (promotionId == 0 && widget.isBuyFromCart)
+                                ? "Ưu đãi giỏ hàng (20%)"
+                                : "Khuyến mãi voucher",
+                            "-${currency.format(_calculateDiscount)}", // Dùng hàm tính toán ở bước 2
                             color: Colors.green,
                           ),
                         _buildSummaryRow(
@@ -551,14 +593,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 color: Color(0xFF3E2723),
                               ),
                             ),
-                            Text(
-                              currency.format(_data!.totalAmount),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 22,
-                                color: Color(0xFFD84315),
-                              ),
-                            ),
+                            widget.isBuyFromCart && promotionId == 0
+                                ? Text(
+                                    currency.format(_calculateFinalTotal),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 22,
+                                      color: Color(0xFFD84315),
+                                    ),
+                                  )
+                                : Text(
+                                    currency.format(_data!.totalAmount),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 22,
+                                      color: Color(0xFFD84315),
+                                    ),
+                                  ),
                           ],
                         ),
 
