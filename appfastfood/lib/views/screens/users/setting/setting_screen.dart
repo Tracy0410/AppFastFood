@@ -2,6 +2,8 @@ import 'package:appfastfood/service/api_service.dart';
 import 'package:appfastfood/utils/app_colors.dart';
 import 'package:appfastfood/utils/storage_helper.dart';
 import 'package:appfastfood/views/screens/users/home_screen.dart';
+import 'package:appfastfood/views/screens/users/setting/change_pass.dart';
+import 'package:appfastfood/views/screens/users/setting/notification_setting.dart';
 import 'package:appfastfood/views/widget/topbar_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -122,7 +124,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   icon: Icons.notifications_none_outlined,
                   title: "Cài Đặt Thông Báo",
                   onTap: () {
-                    // Xử lý chuyển trang
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationSettingScreen()));
                   },
                 ),
                 _buildSettingItem(
@@ -130,7 +132,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   title: "Thay Đổi Mật Khẩu",
                   isKeyIcon: true,
                   onTap: () {
-                    // Xử lý chuyển trang đổi mật khẩu
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePass()));
                   },
                 ),
                 _buildSettingItem(

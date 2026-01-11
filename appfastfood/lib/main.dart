@@ -1,7 +1,14 @@
+import 'package:appfastfood/utils/notification_helper.dart';
 import 'package:appfastfood/views/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final notificationHelper = NotificationHelper();
+  await notificationHelper.init();
+  
+  await notificationHelper.requestPermission();
   runApp(const MyApp());
 }
 
