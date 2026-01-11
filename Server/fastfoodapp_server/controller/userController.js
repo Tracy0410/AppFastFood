@@ -27,7 +27,7 @@ const vnp_Config = {
     tmnCode: "I49MR19A",
     hashSecret: "1VOXW52GV9VU09AUCYW3O4IHCJHWQBKT",
     url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
-    returnUrl: "http://192.168.100.248:8001/api/payment/vnpay_return"
+    returnUrl: "http://192.168.1.16:8001/api/payment/vnpay_return"
 }
 
 export default class userController {
@@ -762,7 +762,7 @@ export default class userController {
                     req.connection.remoteAddress ||
                     req.socket.remoteAddress ||
                     req.connection.socket.remoteAddress || 
-                    '192.168.100.248';
+                    '192.168.1.16';
                 // 3. Tạo URL thanh toán
                 const paymentUrl = createVnpayUrl({
                     orderId: result.order_id,
@@ -793,11 +793,11 @@ export default class userController {
     }
     static async checkAvailablePromotions(req, res) {
         try {
-            const { items } = req.body; 
-            // items gửi lên từ Flutter: [{product_id: 1, category_id: 2}, ...]
+            const { product_id,category_id } = req.body; 
             
-            const promotions = await userModel.getApplicablePromotions(items);
-
+            // items gửi lên từ Flutter: [{product_id: 1, category_id: 2}, ...]
+            const promotions = await userModel.getApplicablePromotions(product_id,category_id);
+            console.log(promotions);
             res.status(200).json({
                 success: true,
                 data: promotions

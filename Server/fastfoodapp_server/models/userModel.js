@@ -474,35 +474,37 @@ export default class userModel {
             items: calculatedItems
         };
     }
-    static async getApplicablePromotions(items) {
-        // items format: [{product_id: 1, category_id: 2}, ...]
-        if (!items || items.length === 0) return [];
+    static async getApplicablePromotions(productIds, categoryIds) {
+        // Console log để debug xem nhận được gì
+        console.log("Input ProductIDs:", productIds);
+        console.log("Input CategoryIDs:", categoryIds);
 
-        // Lấy danh sách ID để query
-        const productIds = items.map(i => i.product_id).filter(id => id);
-        const categoryIds = items.map(i => i.category_id).filter(id => id);
+        // Xử lý an toàn: Nếu null/undefined thì gán mảng rỗng
+        const safeProductIds = productIds || [];
+        const safeCategoryIds = categoryIds || [];
 
-        // Trick: Nếu mảng rỗng thì để [-1] để SQL không lỗi cú pháp
-        const sqlProductIds = productIds.length > 0 ? productIds : [-1];
-        const sqlCategoryIds = categoryIds.length > 0 ? categoryIds : [-1];
+        // Trick: Nếu mảng rỗng thì gán [-1] để SQL không lỗi cú pháp "IN ()"
+        const sqlProductIds = safeProductIds.length > 0 ? safeProductIds : [-1];
+        const sqlCategoryIds = safeCategoryIds.length > 0 ? safeCategoryIds : [-1];
 
-        const query = `
-            SELECT DISTINCT p.promotion_id, p.name, p.discount_percent, p.start_date, p.end_date
-            FROM Promotions p
-            JOIN Promotion_Details pd ON p.promotion_id = pd.promotion_id
-            WHERE p.status = 1 
-            AND NOW() BETWEEN p.start_date AND p.end_date
-            AND (
-                pd.product_id IN (?) 
-                OR 
-                pd.category_id IN (?)
-            )
-        `;
+        const query = `SELECT DISTINCT p.promotion_id, p.name, p.discount_percent, p.start_date, p.end_date
+        FROM Promotions p
+        JOIN Promotion_Details pd ON p.promotion_id = pd.promotion_id
+        WHERE p.status = 1 
+        AND NOW() BETWEEN p.start_date AND p.end_date
+        AND (
+            pd.product_id IN (?) 
+            OR 
+            pd.category_id IN (?)
+        )`;
 
-        const [rows] = await db.query(query, [sqlProductIds, sqlCategoryIds]);
-
-        console.log(rows);
-        return rows;
+        try {
+            const [rows] = await execute(query, [...sqlProductIds, ...sqlCategoryIds]);
+            return rows;
+        } catch (error) {
+            console.error("Lỗi SQL getApplicablePromotions:", error);
+            return [];
+        }
     }
 
 

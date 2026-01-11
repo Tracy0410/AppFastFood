@@ -12,10 +12,10 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.100.248:8001'; //máy thật
-  static const String BaseUrl = 'http://127.0.0.1:8001'; // máy ảo
+  static const String baseUrl = 'http://192.168.1.16:8001'; //máy thật
+  static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
-  static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
+  static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
 
   // Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -88,7 +88,10 @@ class ApiService {
       final token = await StorageHelper.getToken();
       if (token == null) return false;
 
-      final uri = Uri.parse('$urlEdit/api/delete/$userId'); 
+      // URL này sẽ ghép thành: http://.../api/delete/5
+      final uri = Uri.parse('$urlEdit/api/delete/$userId');
+
+      print("Dang goi API xoa: $uri"); // In ra để check link
 
       final response = await http.delete(
         uri,
@@ -98,6 +101,14 @@ class ApiService {
         },
       );
 
+      print(
+        "Status Code: ${response.statusCode}",
+      ); // Quan trọng: Xem mã lỗi (200, 404, 500?)
+      print(
+        "Response Body: ${response.body}",
+      ); // Quan trọng: Xem server báo lỗi gì
+
+>>>>>>> origin/danh
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
         return jsonResponse['success'] == true;
@@ -833,76 +844,67 @@ class ApiService {
     return []; // Trả về danh sách rỗng nếu lỗi
   }
 
- Future<String> chatWithAI({
-  required String question,
-}) async {
-  try {
-    final token = await StorageHelper.getToken();
-    final userId = await StorageHelper.getUserId();
-
-    final url = Uri.parse('$urlEdit/api/ai/chat');
-
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'prompt': question, // ✅ PHẢI LÀ prompt
-        'user_id': userId,  // giữ hay bỏ đều được
-      }),
-    );
-
-   if (response.statusCode == 200) {
-  print('🔥 AI RAW RESPONSE: ${response.body}');
-  final jsonRes = jsonDecode(response.body);
-
-  return jsonRes['answer']?.toString() ?? 'AI chưa có câu trả lời';
-}
- else {
-      return 'Lỗi AI (${response.statusCode})';
-    }
-  } catch (e) {
-    return 'Không kết nối được AI';
-  }
-}
+  // service/api_service.dart
 
   static Future<List<Voucher>> checkAvailablePromotions(
-    List<dynamic> cartItems,
+    List<CartItem> cartItems,
   ) async {
     try {
-      // 1. Map dữ liệu cartItems sang format Server cần: [{product_id: 1, category_id: 2}, ...]
-      // Lưu ý: Sửa 'productId' / 'categoryId' cho đúng tên biến trong Model Cart của bạn
-      final itemsPayload = cartItems
-          .map((e) => {"product_id": e.productId, "category_id": e.categoryId})
-          .toList();
-
-      // 2. Gọi API
+      final pIds = cartItems.map((e) => e.productId).toSet().toList();
+      final cIds = cartItems.map((e) => e.categoryId).toSet().toList();
       final response = await http.post(
         Uri.parse('$urlEdit/api/promotions/check-available'),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"items": itemsPayload}),
+        body: jsonEncode({
+          "product_id": pIds, // Gửi mảng [1, 2, 3]
+          "category_id": cIds, // Gửi mảng [5, 6]
+        }),
       );
 
-      // 3. Xử lý kết quả
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-
+        final jsonResponse = jsonDecode(response.body);
         if (jsonResponse['success'] == true) {
           final List<dynamic> data = jsonResponse['data'];
-          // Convert List json -> List Voucher
           return data.map((json) => Voucher.fromJson(json)).toList();
-        } else {
-          // Server trả về success: false
-          throw Exception(jsonResponse['message'] ?? "Lỗi không xác định");
         }
+      }
+      return []; // Trả về rỗng nếu lỗi hoặc không có voucher
+    } catch (e) {
+      print("Lỗi API checkAvailablePromotions: $e");
+      throw e;
+    }
+  }
+
+  // ================= AI CHAT =================
+  Future<String> chatWithAI({required String question}) async {
+    try {
+      final token = await StorageHelper.getToken();
+      final userId = await StorageHelper.getUserId();
+
+      final url = Uri.parse('$urlEdit/api/ai/chat');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'prompt': question, // ✅ PHẢI LÀ prompt
+          'user_id': userId, // giữ hay bỏ đều được
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print('🔥 AI RAW RESPONSE: ${response.body}');
+        final jsonRes = jsonDecode(response.body);
+
+        return jsonRes['answer']?.toString() ?? 'AI chưa có câu trả lời';
       } else {
-        throw Exception("Lỗi kết nối Server: ${response.statusCode}");
+        return 'Lỗi AI (${response.statusCode})';
       }
     } catch (e) {
-      // Ném lỗi ra để bên UI bắt và hiển thị
-      throw Exception("Lỗi tải voucher: $e");
+      return 'Không kết nối được AI';
     }
   }
 }

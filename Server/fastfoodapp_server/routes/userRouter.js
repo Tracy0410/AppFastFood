@@ -24,6 +24,7 @@ userRouter.post('/login', userController.login);
 userRouter.post('/register', userController.register);
 userRouter.delete('/delete/:id', auth, userController.deleteAccount);
 
+
 // Route nhận kết quả từ VNPay (Method là GET nhé)
 userRouter.get('/payment/vnpay_return', userController.vnpayReturn);
 

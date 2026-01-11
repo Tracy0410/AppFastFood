@@ -1,3 +1,4 @@
+import 'package:appfastfood/models/cartItem.dart';
 import 'package:appfastfood/models/voucher.dart';
 import 'package:appfastfood/service/api_service.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +8,7 @@ import 'package:intl/intl.dart';
 
 class PromotionCheckoutScreen extends StatefulWidget {
   // Nhận danh sách món từ Checkout để lọc voucher
-  final List<dynamic> cartItems; // List Model item của bạn
+  final List<CartItem> cartItems; // List Model item của bạn
 
   const PromotionCheckoutScreen({super.key, required this.cartItems});
 
@@ -28,12 +29,6 @@ class _PromotionCheckoutScreenState extends State<PromotionCheckoutScreen> {
 
   // Gọi API lấy voucher phù hợp với giỏ hàng
   Future<void> _loadVoucher() async {
-    // 1. Chuẩn bị dữ liệu body: Lấy product_id và category_id từ cartItems
-    // Giả sử item trong cartItems có field productId và categoryId
-    final itemsPayload = widget.cartItems
-        .map((e) => {"product_id": e.productId, "category_id": e.categoryId})
-        .toList();
-
     try {
       final vouchers = await ApiService.checkAvailablePromotions(
         widget.cartItems,
