@@ -33,4 +33,19 @@ class Address {
       status: int.tryParse(json['status']?.toString() ?? '0') ?? 0,
     );
   }
+    Map<String, dynamic> toJson() {
+    return {
+      'address_id': addressId,
+      'user_id': userId,
+      'recipient_name': name,
+      'street_address': streetAddress,
+      'district': district,
+      'city': city,
+      'is_default': isDefault ? 1 : 0,
+      'status': status,
+    };
+  }
+  
+  // Hàm helper để hiển thị địa chỉ đầy đủ
+  String get fullAddress => "$streetAddress, $district, $city";
 }

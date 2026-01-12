@@ -57,4 +57,10 @@ userRouter.get('/addresses', auth,userController.getAddressList);
 userRouter.post('/addresses/add', auth, userController.addAddress);
 userRouter.put('/addresses/setup', auth, userController.setDefaultAddress);
 userRouter.delete('/addresses/delete', auth, userController.deleteAddress);
+
+// Lấy danh sách đơn hàng
+userRouter.get('/orders/my-orders', auth, userController.getMyOrders);
+
+// Lấy chi tiết đơn hàng
+userRouter.get('/orders/detail/:order_id', auth, userController.getOrderDetail);
 export default userRouter;

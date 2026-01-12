@@ -535,5 +535,92 @@ export default class userModel {
             throw new Error(error.message);
         }
     }
+       // --- LẤY TẤT CẢ ĐƠN HÀNG (ADMIN) - CÓ HỖ TRỢ LỌC STATUS ---
+   static async getAllOrders(status) {
+    try {
+        let sql = `
+            SELECT 
+                o.order_id, 
+                o.user_id, 
+                o.total_amount, 
+                o.order_status, 
+                o.payment_status,
+                o.created_at, 
+                o.note,
+                o.subtotal,
+                o.discount_amount,
+                o.shipping_address_id,
+                u.fullname,
+                u.email,
+                u.phone,
+                a.recipient_name,
+                a.street_address,
+                a.district,
+                a.city
+            FROM Orders o
+            JOIN Users u ON o.user_id = u.user_id
+            LEFT JOIN Addresses a ON o.shipping_address_id = a.address_id
+            WHERE 1=1
+        `;
+            
+            const params = [];
+
+            // Logic lọc động ở đây
+            if (status && status !== 'ALL' && status.trim() !== '') {
+                sql += ` AND o.order_status = ?`;
+                params.push(status.trim());
+            }
+
+            sql += ` ORDER BY o.created_at DESC`;
+
+            const [rows] = await execute(sql, params);
+            return rows;
+        } catch (error) {
+            throw new Error('Get all orders failed: ' + error.message);
+        }
+    }
+
+    // 2. Lấy đơn hàng theo User ID (App User)
+    static async getOrdersByUserId(userId) {
+        const sql = `
+            SELECT 
+                order_id, 
+                total_amount, 
+                order_status, 
+                payment_status,
+                created_at, 
+                note 
+            FROM Orders 
+            WHERE user_id = ? 
+            ORDER BY created_at DESC
+        `;
+        const [rows] = await execute(sql, [userId]);
+        return rows;
+    }
+
+    // 3. Lấy chi tiết sản phẩm trong một đơn hàng
+    static async getOrderDetail(orderId) {
+        const sql = `
+            SELECT 
+                od.detail_id, 
+                od.product_id, 
+                od.quantity, 
+                od.final_line_price as price, 
+                p.name, 
+                p.image_url 
+            FROM Order_Details od
+            JOIN Products p ON od.product_id = p.product_id
+            WHERE od.order_id = ?
+        `;
+        const [rows] = await execute(sql, [orderId]);
+        return rows;
+    }
+    
+    // 4. Lấy thông tin chung của 1 đơn hàng cụ thể
+     static async getOrderById(orderId) {
+        const sql = `SELECT * FROM Orders WHERE order_id = ?`;
+        const [rows] = await execute(sql, [orderId]);
+        return rows[0];
+    }
 
 }

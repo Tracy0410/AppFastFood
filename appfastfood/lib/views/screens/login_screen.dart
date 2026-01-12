@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/user.dart';
 import 'users/home_screen.dart';
+import 'package:appfastfood/views/screens/admin/admin_home_screen.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -33,12 +35,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    try {
+    try {    // 1. Gọi API kiểm tra đúng sai
       final result = await _apiService.login(
         _usernameController.text.trim(),
         _passwordController.text.trim(),
       );
-
+      // 2. Nếu đăng nhập thành công (API trả về success: true)
       if (result['success'] == true) {
         User user = User.fromJson(result['user']);
         String token = result['token'];
@@ -50,9 +52,35 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Đăng nhập thành công!"), backgroundColor: Colors.green),
+            const SnackBar(
+                content: Text("Đăng nhập thành công!"),
+                backgroundColor: Colors.green),
           );
-          Navigator.pushAndRemoveUntil(context,MaterialPageRoute(builder: (context) => const HomePageScreen()),(route) => false);
+
+          // --- ĐOẠN LOGIC PHÂN QUYỀN Ở ĐÂY ---
+          // Kiểm tra nếu username nhập vào là 'admin' thì chuyển sang trang Admin
+          if (_usernameController.text.trim() == 'admin') {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminHomePageScreen()),
+              (route) => false,
+            );
+          } else {
+            // Ngược lại (User thường) thì chuyển sang trang Home
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const HomePageScreen()),
+              (route) => false,
+            );
+          }
+          // ------------------------------------
+        }
+      } else {
+        // Trường hợp API trả về success: false (sai pass hoặc user không tồn tại)
+         if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? "Đăng nhập thất bại"), backgroundColor: Colors.red),
+          );
         }
       }
     } catch (e) {
