@@ -1,4 +1,5 @@
 import OrderModel from '../models/orderModel.js';
+import userModel from '../models/userModel.js';
 class OderControllder{
     static async getMyOrders(req, res){
     try {
@@ -55,20 +56,19 @@ static async retryPayment(req, res) {
         if (!order) {
             return res.status(400).send({ message: "Đơn hàng không tồn tại hoặc đã thanh toán/đã hủy." });
         }
-
-        // 2. Tạo URL VNPay mới (Giả sử bạn có hàm tạo URL)
-        // const paymentUrl = paymentService.createPaymentUrl(orderId, order.total_amount, ...);
-        
-        // Demo URL (Thay bằng logic VNPay thật của bạn)
-        const paymentUrl = `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?order_id=${orderId}&amount=${order.total_amount}`;
-
-        res.send({
+        const result = await userModel.updatePaymentStatus(orderId,'PAID');
+        if(result){
+          res.status(200).send({
             success: true,
-            paymentUrl: paymentUrl
-        });
+            message: "Thanh toán thành công (Test Mode)"
+          });
+        }else {
+          res.status(500).send({ success: false, message: "Lỗi cập nhật DB" });
+        }
 
     } catch (err) {
-        res.status(500).send({ message: "Lỗi tạo link thanh toán: " + err.message });
+        console.log(err);
+        res.status(500).send({ success: false, message: "Lỗi Server: " + err.message });
     }
 }
 }

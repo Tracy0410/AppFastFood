@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:appfastfood/models/address.dart';
 import 'package:appfastfood/models/cartItem.dart';
-import 'package:appfastfood/models/order.dart';
+import 'package:appfastfood/models/Order.dart';
 import 'package:appfastfood/models/user.dart';
 import 'package:appfastfood/models/promotion.dart';
 import 'package:appfastfood/models/voucher.dart';
@@ -13,7 +13,7 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8001'; //máy thật
+  static const String baseUrl = 'http://192.168.100.248:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
   static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
@@ -1032,5 +1032,32 @@ class ApiService {
       print("Lỗi getOrderDetail: $e");
       return null;
     }
+  }
+
+  // Hàm thanh toán nhanh (Fake Pay)
+  Future<bool> repayOrder(int orderId) async {
+    try {
+      final token = await StorageHelper.getToken();
+      final url = Uri.parse(
+        '$urlEdit/api/order/repay',
+      ); // Đường dẫn đến hàm retryPayment ở trên
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'orderId': orderId}),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonRes = jsonDecode(response.body);
+        return jsonRes['success'] == true; // Trả về true nếu server bảo ok
+      }
+    } catch (e) {
+      print("Lỗi thanh toán nhanh: $e");
+    }
+    return false;
   }
 }
