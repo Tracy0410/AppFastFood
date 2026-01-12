@@ -46,7 +46,7 @@ class Order{
         (SELECT method FROM Payment WHERE order_id = o.order_id ORDER BY payment_time DESC LIMIT 1) as payment_method,
         
         -- LẤY FULL DANH SÁCH TÊN MÓN
-        GROUP_CONCAT(CONCAT(p.name, ' (x', od.quantity, ')') SEPARATOR ', ') as items_summary,
+        GROUP_CONCAT(CONCAT(p.name, ' (x', od.quantity, ') - ', (p.price * od.quantity)) SEPARATOR ', ') as items_summary,
         
         (SELECT image_url FROM Products p2 JOIN Order_Details od2 ON p2.product_id = od2.product_id WHERE od2.order_id = o.order_id LIMIT 1) as thumbnail
 
@@ -74,6 +74,7 @@ static async checkOrderForPayment(orderId, userId){
     const [rows] = await execute(query, [orderId, userId]);
     return rows[0];
     }
+    
 }
 
 export default Order;

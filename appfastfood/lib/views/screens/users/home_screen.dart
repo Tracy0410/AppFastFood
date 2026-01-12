@@ -144,14 +144,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
     return future;
   }
 
-  Future<List<OrderModel>> _refeshOrderData() async {
-    final data = _apiService.getOrderYourUserId();
-    setState(() {
-      _OrderList = data;
-    });
-    return data;
-  }
-
   // Hàm lọc sản phẩm theo search text
   void _filterProducts(String query) {
     if (query.isEmpty) {
@@ -208,7 +200,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
           onRefresh: _refreshFavData,
         );
       case 3:
-        return OrderListScreen(onRefresh: _refeshOrderData);
+        return OrderListScreen();
       case 4:
         return const FaqScreen();
       default:

@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class OrderListScreen extends StatefulWidget {
-  final Future<void> Function() onRefresh;
-  const OrderListScreen({super.key, required this.onRefresh});
+  const OrderListScreen({super.key});
 
   @override
   State<OrderListScreen> createState() => _OrderListScreenState();
@@ -14,90 +13,162 @@ class OrderListScreen extends StatefulWidget {
 
 class _OrderListScreenState extends State<OrderListScreen>
     with AutomaticKeepAliveClientMixin {
-  List<OrderModel> _orders = [];
+  // Giữ trạng thái khi chuyển tab chính
+
+  // Biến lưu TOÀN BỘ đơn hàng lấy từ API
+  List<OrderModel> _allOrders = [];
   bool isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
     _fetchOrders();
   }
 
-  @override
-  bool get wantKeepAlive => true;
-
+  // Hàm gọi API lấy tất cả đơn
   Future<void> _fetchOrders() async {
-    if (_orders.isEmpty) {
-      setState(() {
-        isLoading = true;
-      });
+    if (_allOrders.isEmpty) {
+      setState(() => isLoading = true);
     }
-
     try {
+      // Giả sử API trả về tất cả đơn hàng
       List<OrderModel> data = await ApiService().getOrderYourUserId();
       if (mounted) {
         setState(() {
-          _orders = data;
+          _allOrders = data;
         });
       }
     } catch (e) {
       print("Lỗi fetch orders: $e");
     } finally {
       if (mounted) {
-        isLoading = false;
+        setState(() => isLoading = false);
       }
     }
+  }
+
+  // --- HÀM LỌC ĐƠN HÀNG THEO TRẠNG THÁI ---
+  List<OrderModel> _filterOrders(List<String> statuses) {
+    return _allOrders.where((order) {
+      // Kiểm tra xem status của đơn hàng có nằm trong danh sách cần lấy không
+      return statuses.contains(order.status.toUpperCase());
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Đơn hàng của tôi",
-          style: TextStyle(color: Colors.black),
+
+    // Tạo 3 danh sách riêng biệt
+    // Bạn nhớ kiểm tra các chữ 'PENDING', 'SHIPPED' này có khớp với Database của bạn không nhé
+    final listProcessing = _filterOrders([
+      'PENDING',
+      'CONFIRMED',
+      'SHIPPED',
+      'PROCESSING',
+      'UNPAID',
+    ]);
+    final listCompleted = _filterOrders([
+      'COMPLETED',
+      'DELIVERED',
+      'PAID',
+      'SUCCESS',
+    ]);
+    final listCancelled = _filterOrders(['CANCELLED', 'FAILED']);
+
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Transform.translate(
+            offset: Offset(0, -10),
+            child: Text(
+              "Đơn hàng của tôi",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          backgroundColor: Color(0xFFFFC529),
+          elevation: 0,
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          bottom: const TabBar(
+            labelColor: Color(0xFFE95322), // Màu chữ khi chọn
+            unselectedLabelColor: Color.fromARGB(
+              255,
+              255,
+              255,
+              255,
+            ), // Màu chữ khi không chọn
+            indicatorColor: Color(0xFFE95322), // Màu gạch dưới
+            tabs: [
+              Tab(text: "Đang xử lý"),
+              Tab(text: "Hoàn thành"),
+              Tab(text: "Đã hủy"),
+            ],
+          ),
         ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black),
+        backgroundColor: Colors.grey[100],
+
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : TabBarView(
+                children: [
+                  // Tab 1: Đang xử lý
+                  _buildListTab(listProcessing),
+
+                  // Tab 2: Hoàn thành
+                  _buildListTab(listCompleted),
+
+                  // Tab 3: Đã hủy
+                  _buildListTab(listCancelled),
+                ],
+              ),
       ),
-      backgroundColor: Colors.grey[100], // Màu nền xám nhẹ
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _fetchOrders, // Kéo để refresh
-              child: _orders.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(12),
-                      itemCount: _orders.length,
-                      itemBuilder: (context, index) {
-                        return _buildOrderItem(_orders[index]);
-                      },
-                    ),
+    );
+  }
+
+  // Widget dùng chung để vẽ danh sách cho từng Tab
+  Widget _buildListTab(List<OrderModel> orders) {
+    return RefreshIndicator(
+      onRefresh: _fetchOrders, // Kéo tab nào cũng refresh lại toàn bộ
+      child: orders.isEmpty
+          ? _buildEmptyState()
+          : ListView.builder(
+              padding: const EdgeInsets.all(12),
+              physics:
+                  const AlwaysScrollableScrollPhysics(), // Để list rỗng vẫn kéo refresh được
+              itemCount: orders.length,
+              itemBuilder: (context, index) {
+                return _buildOrderItem(orders[index]);
+              },
             ),
     );
   }
 
-  // Widget hiển thị khi không có đơn nào
+  // Widget hiển thị khi tab trống
   Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 16),
+          Icon(Icons.assignment_outlined, size: 70, color: Colors.grey[300]),
+          const SizedBox(height: 10),
           const Text(
-            "Bạn chưa có đơn hàng nào",
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            "Không có đơn hàng nào",
+            style: TextStyle(color: Colors.grey),
           ),
         ],
       ),
     );
   }
 
-  // Widget hiển thị từng thẻ đơn hàng
+  // Widget hiển thị từng thẻ đơn hàng (Code cũ giữ nguyên)
   Widget _buildOrderItem(OrderModel order) {
     final currency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
     final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(order.date);
@@ -109,13 +180,15 @@ class _OrderListScreenState extends State<OrderListScreen>
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          // Chuyển sang màn hình chi tiết
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => OrderDetailScreen(orderId: order.id),
+              builder: (context) =>
+                  OrderDetailScreen(orderId: order.id), // Truyền ID sang Detail
             ),
-          );
+          ).then(
+            (_) => _fetchOrders(),
+          ); // Khi quay lại thì reload để cập nhật trạng thái mới
         },
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -124,13 +197,12 @@ class _OrderListScreenState extends State<OrderListScreen>
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Ảnh Thumbnail
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
                       order.thumbnail.isNotEmpty
                           ? order.thumbnail
-                          : 'https://via.placeholder.com/150', // Ảnh mặc định nếu null
+                          : 'https://via.placeholder.com/150',
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,
@@ -143,8 +215,6 @@ class _OrderListScreenState extends State<OrderListScreen>
                     ),
                   ),
                   const SizedBox(width: 12),
-
-                  // 2. Thông tin chính
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,7 +239,6 @@ class _OrderListScreenState extends State<OrderListScreen>
                           ],
                         ),
                         const SizedBox(height: 8),
-                        // Hiển thị tóm tắt món ăn (cắt bớt nếu dài quá)
                         Text(
                           order.itemsSummary,
                           maxLines: 2,
@@ -179,14 +248,12 @@ class _OrderListScreenState extends State<OrderListScreen>
                             fontSize: 14,
                           ),
                         ),
-                        const SizedBox(height: 8),
                       ],
                     ),
                   ),
                 ],
               ),
               const Divider(),
-              // 3. Tổng tiền và Trạng thái
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -194,7 +261,7 @@ class _OrderListScreenState extends State<OrderListScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "Tổng thanh toán",
+                        "Tổng tiền",
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       Text(

@@ -17,7 +17,7 @@ class OrderDetailScreen extends StatefulWidget {
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   late Future<OrderModel?> _orderFuture;
   final ApiService _apiService = ApiService();
-
+  bool _isActionLoading = true;
   @override
   void initState() {
     super.initState();
@@ -37,6 +37,37 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Đã sao chép mã đơn hàng')));
+  }
+
+  Future<void> _handleRepay() async {
+    setState(() => _isActionLoading = true); // Hiện vòng xoay
+
+    // 1. Gọi API thanh toán nhanh
+    bool isSuccess = await _apiService.repayOrder(widget.orderId);
+
+    if (mounted) {
+      setState(() => _isActionLoading = false); // Tắt vòng xoay
+
+      if (isSuccess) {
+        // 2. Thông báo thành công
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Thanh toán thành công!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // 3. Tự động load lại dữ liệu để cập nhật trạng thái mới
+        _loadData();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Thanh toán thất bại, thử lại sau"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -452,7 +483,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               flex: 2,
               child: ElevatedButton(
                 onPressed: () {
-                  // Logic gọi API lấy link thanh toán
+                  _handleRepay();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE95322),
