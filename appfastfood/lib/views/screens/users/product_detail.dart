@@ -4,6 +4,7 @@ import 'package:appfastfood/service/api_service.dart';
 import 'package:appfastfood/utils/storage_helper.dart';
 import 'package:appfastfood/views/screens/users/checkout_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // 1. Import thư viện format tiền
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -18,11 +19,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   // --- State Variables ---
   int _quantity = 1;
   bool _isLoggedIn = false;
-  bool _isLiking = false; // Tránh spam nút like
+  bool _isLiking = false;
   bool _isFav = false;
   bool _isAddingToCart = false;
   bool _isLoadingReview = true;
-  Product? _fullProduct; // Chứa thông tin chi tiết (gồm review)
+  Product? _fullProduct;
 
   // --- Constants ---
   final Color primaryColor = const Color(0xFFE95322);
@@ -34,14 +35,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _fetchFullProductData();
   }
 
-  // --- Logic Methods ---
+  // --- Logic Methods (Giữ nguyên không đổi) ---
 
   Future<void> _checkLoginStatus() async {
     final token = await StorageHelper.getToken();
     setState(() {
       _isLoggedIn = (token != null && token.isNotEmpty);
     });
-    // Nếu đã đăng nhập thì mới check trạng thái yêu thích
     if (_isLoggedIn) {
       _checkFav();
     }
@@ -57,7 +57,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         });
       }
     } catch (e) {
-      // Xử lý lỗi nếu cần
       if (mounted) setState(() => _isLoadingReview = false);
     }
   }
@@ -111,7 +110,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     bool success = await ApiService().addToCart(
       widget.product.id,
       _quantity,
-      '', // Note mặc định rỗng
+      '',
     );
 
     setState(() => _isAddingToCart = false);
@@ -165,7 +164,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Ưu tiên hiển thị dữ liệu full nếu đã load xong
+    // 2. Khai báo formatter
+    final formatCurrency = NumberFormat.currency(
+      locale: 'vi_VN',
+      symbol: 'VNĐ',
+      decimalDigits: 0,
+    );
+
     final displayProduct = _fullProduct ?? widget.product;
 
     return Scaffold(
@@ -187,7 +192,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 children: [
                   _buildDragHandle(),
                   const SizedBox(height: 20),
-                  _buildPriceAndQuantity(),
+
+                  // Truyền formatter vào hàm này
+                  _buildPriceAndQuantity(formatCurrency),
+
                   const SizedBox(height: 15),
                   Text(
                     widget.product.name,
@@ -222,14 +230,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   const SizedBox(height: 10),
                   _buildReviewSection(displayProduct),
-                  const SizedBox(height: 80), // Padding cho BottomBar
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomBar(),
+      // Truyền formatter xuống bottom bar
+      bottomNavigationBar: _buildBottomBar(formatCurrency),
     );
   }
 
@@ -284,12 +293,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildPriceAndQuantity() {
+  // 3. Update UI: Giá tiền (Đơn giá)
+  Widget _buildPriceAndQuantity(NumberFormat formatCurrency) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          "${widget.product.price}đ",
+          formatCurrency.format(widget.product.price), // Format ở đây
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -439,7 +449,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildBottomBar() {
+  // 4. Update UI: Tổng tiền (Bottom Bar)
+  Widget _buildBottomBar(NumberFormat formatCurrency) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       decoration: BoxDecoration(
@@ -461,7 +472,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               children: [
                 const Text("Tổng tiền:", style: TextStyle(color: Colors.grey)),
                 Text(
-                  "${widget.product.price * _quantity}đ",
+                  formatCurrency.format(
+                    widget.product.price * _quantity,
+                  ), // Format ở đây
                   style: const TextStyle(
                     color: Colors.red,
                     fontWeight: FontWeight.bold,

@@ -7,5 +7,6 @@ orderRouter.get('/order', auth, OrderController.getMyOrders);
 orderRouter.get('/order/:id', auth, OrderController.getOrderDetail);
 
 orderRouter.post('/order/repay', auth, OrderController.retryPayment);
+orderRouter.post('/order/cancel',auth,OrderController.cancelOrder);
 
 export default orderRouter;

@@ -71,6 +71,26 @@ static async retryPayment(req, res) {
         res.status(500).send({ success: false, message: "Lỗi Server: " + err.message });
     }
 }
+
+static async cancelOrder(req, res) {
+    try {
+        const userId = req.userId;
+        const { orderId } = req.body;
+
+        const isCancelled = await OrderModel.cancelOrder(orderId, userId);
+
+        if (isCancelled) {
+            res.status(200).json({ success: true, message: "Đã hủy đơn hàng thành công." });
+        } else {
+            res.status(400).json({ 
+                success: false, 
+                message: "Không thể hủy đơn hàng này (Đã được xác nhận hoặc đã thanh toán)." 
+            });
+        }
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Lỗi server: " + err.message });
+    }
+}
 }
 
 
