@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:appfastfood/models/address.dart';
 import 'package:appfastfood/models/cartItem.dart';
+import 'package:appfastfood/models/order.dart';
 import 'package:appfastfood/models/user.dart';
 import 'package:appfastfood/models/promotion.dart';
 import 'package:appfastfood/models/voucher.dart';
@@ -12,7 +13,7 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.1.16:8001'; //máy thật
+  static const String baseUrl = 'http://127.0.0.1:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
   static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
@@ -860,6 +861,58 @@ class ApiService {
       }
     } catch (e) {
       return 'Không kết nối được AI';
+    }
+  }
+
+  Future<List<OrderModel>> getOrderYourUserId() async {
+    try {
+      final token = await StorageHelper.getToken();
+      final res = await http.get(
+        Uri.parse('$urlEdit/api/order'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (res.statusCode == 200) {
+        final jsnres = jsonDecode(res.body);
+        if (jsnres is Map && jsnres['success'] == true) {
+          final List<dynamic> data = jsnres['data'];
+          return data.map((e) => OrderModel.fromJson(e)).toList();
+        } else if (jsnres is List) {
+          return jsnres.map((e) => OrderModel.fromJson(e)).toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi getMyOrders: $e");
+      return [];
+    }
+  }
+
+  Future<OrderModel?> getOrderDetail(int orderId) async {
+    try {
+      final token = await StorageHelper.getToken();
+      final url = Uri.parse('$urlEdit/api/order/$orderId');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonRes = jsonDecode(response.body);
+        if (jsonRes['success'] == true) {
+          return OrderModel.fromJson(jsonRes['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      print("Lỗi getOrderDetail: $e");
+      return null;
     }
   }
 }

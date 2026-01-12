@@ -6,7 +6,7 @@ import productRouter from './routes/productRouter.js';
 import promotionRouter from './routes/promotionRouter.js';
 import PromotionController from './controller/promotionsController.js';
 import aiRouter from './routes/aiRouter.js'; 
-
+import orderRouter from './routes/orderRouter.js';
 dotenv.config();
 
 const app = express();
@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-
+app.use('/api', orderRouter);
 app.use('/api', productRouter);
 app.use('/api', userRouter);
 // ✅ ROUTE AI

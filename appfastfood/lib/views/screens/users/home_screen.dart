@@ -1,14 +1,16 @@
+import 'package:appfastfood/models/order.dart';
 import 'package:appfastfood/views/screens/users/home_interface/favorite_content.dart';
 import 'package:appfastfood/views/screens/users/home_interface/home_content.dart';
 import 'package:appfastfood/views/screens/users/faq_screen.dart';
 import 'package:appfastfood/views/screens/users/home_interface/promotion_screen.dart';
+import 'package:appfastfood/views/screens/users/order_list_screem.dart';
 import 'package:flutter/material.dart';
 import '../../../models/products.dart';
 import '../../../service/api_service.dart';
 import '../../widget/custom_top_bar.dart';
 import '../../widget/custom_bottom_bar.dart';
 import '../../widget/side_menu.dart';
-import 'package:appfastfood/views/widget/filter_modal.dart'; 
+import 'package:appfastfood/views/widget/filter_modal.dart';
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
@@ -23,6 +25,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
   late Future<List<Product>> _productsFuture;
   Future<List<Product>>? _favoriteFuture;
+  Future<List<OrderModel>>? _OrderList;
 
   List<Product> _homeDisplayProducts = [];
   List<Product> _homeAllProducts = [];
@@ -141,6 +144,14 @@ class _HomePageScreenState extends State<HomePageScreen> {
     return future;
   }
 
+  Future<List<OrderModel>> _refeshOrderData() async {
+    final data = _apiService.getOrderYourUserId();
+    setState(() {
+      _OrderList = data;
+    });
+    return data;
+  }
+
   // Hàm lọc sản phẩm theo search text
   void _filterProducts(String query) {
     if (query.isEmpty) {
@@ -157,6 +168,10 @@ class _HomePageScreenState extends State<HomePageScreen> {
   // Hàm load dữ liệu cho Favorite
   Future<List<Product>> _loadFavData() async {
     return await _apiService.getFavoriteList();
+  }
+
+  Future<List<OrderModel>> _loadOrderData() async {
+    return await _apiService.getOrderYourUserId();
   }
 
   // Hàm lọc theo danh mục
@@ -193,7 +208,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
           onRefresh: _refreshFavData,
         );
       case 3:
-        return const Center(child: Text("Màn hình Lịch sử (Đang phát triển)"));
+        return OrderListScreen(onRefresh: _refeshOrderData);
       case 4:
         return const FaqScreen();
       default:
@@ -233,6 +248,8 @@ class _HomePageScreenState extends State<HomePageScreen> {
             _currentBottomIndex = index;
             if (index == 2) {
               _loadFavData();
+            } else if (index == 3) {
+              _loadOrderData();
             }
           });
         },
