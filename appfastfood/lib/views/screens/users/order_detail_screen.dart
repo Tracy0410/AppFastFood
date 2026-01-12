@@ -1,5 +1,6 @@
 import 'package:appfastfood/models/order.dart';
 import 'package:appfastfood/service/api_service.dart';
+import 'package:appfastfood/views/screens/users/ReviewOrderScreen.dart';
 import 'package:appfastfood/views/screens/users/ai_chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +20,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   final ApiService _apiService = ApiService();
   bool _isActionLoading = true;
   bool isActionCancel = true;
+
   @override
   void initState() {
     super.initState();
@@ -497,6 +499,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildBottomAction(OrderModel order) {
+    bool isCompletedStatus = [
+      'COMPLETED',
+      'DELIVERED',
+      'SUCCESS',
+    ].contains(order.status.toUpperCase());
+    // 2. Trạng thái thanh toán phải là PAID
+    bool isPaid = order.paymentStatus.toUpperCase() == 'PAID';
+
+    // Biến quyết định có hiện nút Review không
+    bool canReview = isCompletedStatus && isPaid;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
@@ -587,8 +599,34 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ),
             ),
-          ] else ...[
-            const SizedBox(),
+          ] else if (canReview) ...[
+            Expanded(
+              flex: 2,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // Chuyển sang màn hình Review
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ReviewOrderScreen(order: order),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE95322), // Màu cam chủ đạo
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.star_rate_rounded, color: Colors.white),
+                label: const Text(
+                  "Đánh giá ngay",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
           ],
         ],
       ),

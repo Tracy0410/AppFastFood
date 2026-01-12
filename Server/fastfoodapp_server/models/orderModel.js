@@ -26,36 +26,75 @@ class Order{
   console.log(rows);
   return rows;
     }
-    static async OrderDetalById(userId,orderId){
-        const query = `
-    SELECT 
-        o.order_id, 
-        o.created_at, 
-        o.order_status, 
-        o.payment_status,
-        o.subtotal,            
-        o.discount_amount,     
-        o.tax_fee,             
-        o.total_amount,        
-        
-        (SELECT method FROM Payment WHERE order_id = o.order_id ORDER BY payment_time DESC LIMIT 1) as payment_method,
-        
-        -- LẤY FULL DANH SÁCH TÊN MÓN
-        GROUP_CONCAT(CONCAT(p.name, ' (x', od.quantity, ') - ', (p.price * od.quantity)) SEPARATOR ', ') as items_summary,
-        
-        (SELECT image_url FROM Products p2 JOIN Order_Details od2 ON p2.product_id = od2.product_id WHERE od2.order_id = o.order_id LIMIT 1) as thumbnail
+    static async OrderDetalById(userId, orderId) {
+    try {
+        const queryOrder = `
+            SELECT 
+                o.order_id, 
+                o.created_at, 
+                o.order_status, 
+                o.payment_status,
+                o.subtotal,            
+                o.discount_amount,     
+                o.tax_fee,             
+                o.total_amount,        
+                
+                -- Lấy phương thức thanh toán
+                (SELECT method FROM Payment WHERE order_id = o.order_id ORDER BY payment_time DESC LIMIT 1) as payment_method,
+                
+                -- Lấy items_summary (giữ lại để hiển thị danh sách bên ngoài nếu cần)
+                (SELECT GROUP_CONCAT(CONCAT(p.name, ' (x', od.quantity, ')') SEPARATOR ', ') 
+                 FROM Order_Details od 
+                 JOIN Products p ON od.product_id = p.product_id 
+                 WHERE od.order_id = o.order_id) as items_summary,
+                 
+                -- Lấy thumbnail
+                (SELECT image_url FROM Products p2 JOIN Order_Details od2 ON p2.product_id = od2.product_id WHERE od2.order_id = o.order_id LIMIT 1) as thumbnail
 
-    FROM Orders o
-    JOIN Order_Details od ON o.order_id = od.order_id
-    JOIN Products p ON od.product_id = p.product_id
-    WHERE o.order_id = ? AND o.user_id = ?
-    GROUP BY o.order_id;
-  `;
+            FROM Orders o
+            WHERE o.order_id = ? AND o.user_id = ?
+        `;
 
-  const [rows] = await execute(query, [orderId, userId]);
-  console.log(rows);
-  return rows[0]; // Chỉ trả về 1 object (hoặc undefined nếu ko tìm thấy)
-};
+        // Chạy Query 1
+        const [orderRows] = await execute(queryOrder, [orderId, userId]);
+
+        // Nếu không tìm thấy đơn hàng thì trả về null
+        if (!orderRows || orderRows.length === 0) {
+            return null;
+        }
+
+        // Lấy object đơn hàng ra
+        const orderData = orderRows[0];
+
+        // --- BƯỚC 2: LẤY DANH SÁCH CHI TIẾT MÓN (QUAN TRỌNG ĐỂ REVIEW) ---
+        const queryItems = `
+            SELECT 
+                p.product_id,      -- Cần cái này để gửi review
+                p.name as food_name, 
+                od.quantity, 
+                p.price, 
+                p.image_url 
+            FROM Order_Details od
+            JOIN Products p ON od.product_id = p.product_id
+            WHERE od.order_id = ?
+        `;
+
+        // Chạy Query 2
+        const [itemRows] = await execute(queryItems, [orderId]);
+
+        // --- BƯỚC 3: GỘP LIST MÓN VÀO ĐƠN HÀNG ---
+        orderData.items = itemRows; // <--- ĐÂY LÀ CHÌA KHÓA
+
+        // Log ra kiểm tra xem có mảng items chưa
+        console.log("Order Data trả về:", JSON.stringify(orderData, null, 2));
+
+        return orderData;
+
+    } catch (error) {
+        console.error("Lỗi OrderDetalById:", error);
+        throw error;
+    }
+}
 
 // --- 3. KIỂM TRA ĐƠN ĐỂ THANH TOÁN LẠI ---
 static async checkOrderForPayment(orderId, userId){
