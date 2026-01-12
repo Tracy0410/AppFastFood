@@ -624,7 +624,8 @@ export default class userModel {
             throw new Error(error.message);
         }
     }
-       // --- LẤY TẤT CẢ ĐƠN HÀNG (ADMIN) - CÓ HỖ TRỢ LỌC STATUS ---
+
+    // --- LẤY TẤT CẢ ĐƠN HÀNG (ADMIN) - CÓ HỖ TRỢ LỌC STATUS ---
    static async getAllOrders(status) {
     try {
         let sql = `
@@ -669,7 +670,7 @@ export default class userModel {
         }
     }
 
-    // 2. Lấy đơn hàng theo User ID (App User)
+    // 2. Lấy đơn hàng theo User ID (Admin)
     static async getOrdersByUserId(userId) {
         const sql = `
             SELECT 
@@ -687,7 +688,7 @@ export default class userModel {
         return rows;
     }
 
-    // 3. Lấy chi tiết sản phẩm trong một đơn hàng
+    // 3. Lấy chi tiết sản phẩm trong một đơn hàng 
     static async getOrderDetail(orderId) {
         const sql = `
             SELECT 
@@ -728,6 +729,35 @@ export default class userModel {
         } catch (e) {
             console.error("Lỗi update payment:", e);
             throw new Error(e.message);
+        }
+    }
+
+    // Lấy danh sách khuyến mãi đang có hiệu lực
+    static async getActivePromotions() {
+        const sql = `
+            SELECT 
+                promotion_id,
+                name,
+                description,
+                discount_percent,
+                discount_amount,
+                code,
+                start_date,
+                end_date,
+                image_url
+            FROM Promotions
+            WHERE status = 1              -- Chỉ lấy khuyến mãi đang BẬT (TinyInt)
+            AND start_date <= NOW()       -- Đã bắt đầu
+            AND end_date >= NOW()         -- Chưa kết thúc
+            ORDER BY end_date ASC;        -- Cái nào sắp hết hạn hiện lên trước
+        `;
+        
+        try {
+            const [rows] = await execute(sql);
+            return rows;
+        } catch (error) {
+            console.error("Error getting promotions:", error);
+            throw error;
         }
     }
 }

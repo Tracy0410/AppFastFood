@@ -1,87 +1,70 @@
+import 'package:flutter/material.dart';
 
-import 'dart:convert';
-import 'package:intl/intl.dart'; // Import intl để format ngày tháng nếu cần
-import 'Address.dart';
-import 'OrderDetail.dart';
-class Order {
-  final int orderId;
-  final int userId;
-  final int shippingAddressId;
-  final Address? shippingAddress; // Để hứng thông tin địa chỉ chi tiết nếu API trả về nested object
-  final double subtotal;
-  final double taxFee;
+class OrderModel {
+  final int id; // Mã đơn hàng
+  final DateTime date; // Ngày giờ đặt
+  final String status;
+  final String paymentStatus;
+  final String paymentMethod;
+  final double subTotal;
+  final double discount;
+  final double tax;
   final double totalAmount;
-  final DateTime createdAt;
-  final String orderStatus; // PENDING, PROCESSING, etc.
-  final String paymentStatus; // UNPAID, PAID
-  final String? note;
-  final List<OrderDetail> details; // Danh sách món ăn trong đơn
+  final String itemsSummary;
+  final String thumbnail;
 
-  Order({
-    required this.orderId,
-    required this.userId,
-    required this.shippingAddressId,
-    this.shippingAddress,
-    required this.subtotal,
-    required this.taxFee,
-    required this.totalAmount,
-    required this.createdAt,
-    required this.orderStatus,
+  OrderModel({
+    required this.id,
+    required this.date, // <--- Quan trọng
+    required this.status,
     required this.paymentStatus,
-    this.note,
-    required this.details,
+    required this.paymentMethod,
+    required this.subTotal,
+    required this.discount,
+    required this.tax,
+    required this.totalAmount,
+    required this.itemsSummary,
+    required this.thumbnail,
   });
 
-  factory Order.fromJson(Map<String, dynamic> json) {
-    var list = json['order_details'] as List? ?? []; // Key này do API trả về quy định
-    List<OrderDetail> detailsList = list.map((i) => OrderDetail.fromJson(i)).toList();
-
-    return Order(
-      orderId: json['order_id'] ?? 0,
-      userId: json['user_id'] ?? 0,
-      shippingAddressId: json['shipping_address_id'] ?? 0,
-      // Nếu API trả về nguyên cục address
-      shippingAddress: json['address'] != null ? Address.fromJson(json['address']) : null,
-      subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
-      taxFee: (json['tax_fee'] as num?)?.toDouble() ?? 0.0,
-      totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0.0,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+  factory OrderModel.fromJson(Map<String, dynamic> json) {
+    return OrderModel(
+      id: json['order_id'],
+      date: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      orderStatus: json['order_status'] ?? 'PENDING',
-      paymentStatus: json['payment_status'] ?? 'UNPAID',
-      note: json['note'],
-      details: detailsList,
+
+      status: json['order_status'],
+      paymentStatus: json['payment_status'],
+      paymentMethod: json['payment_method'] ?? 'COD',
+      subTotal: double.tryParse(json['subtotal'].toString()) ?? 0.0,
+      discount: double.tryParse(json['discount_amount'].toString()) ?? 0.0,
+      tax: double.tryParse(json['tax_fee'].toString()) ?? 0.0,
+      totalAmount: double.tryParse(json['total_amount'].toString()) ?? 0.0,
+      itemsSummary: json['items_summary'] ?? '',
+      thumbnail: json['thumbnail'] ?? '',
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'order_id': orderId,
-      'user_id': userId,
-      'shipping_address_id': shippingAddressId,
-      'subtotal': subtotal,
-      'tax_fee': taxFee,
-      'total_amount': totalAmount,
-      'created_at': createdAt.toIso8601String(),
-      'order_status': orderStatus,
-      'payment_status': paymentStatus,
-      'note': note,
-      'order_details': details.map((e) => e.toJson()).toList(),
-    };
+  // Helper check trạng thái
+  bool get isUnpaidVNPay =>
+      paymentMethod == 'VNPAY' &&
+      paymentStatus == 'UNPAID' &&
+      status != 'CANCELLED';
+
+  // Helper lấy màu trạng thái
+  Color get statusColor {
+    if (status == 'CANCELLED') return Colors.red;
+    if (status == 'COMPLETED' || status == 'DELIVERED') return Colors.green;
+    return Colors.blue;
   }
 
-  // Helper: Format tiền tệ VND
-  String get formattedTotal {
-    final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
-    return formatCurrency.format(totalAmount);
+  // Helper text trạng thái
+  String get statusText {
+    if (status == 'CANCELLED') return "Đã hủy";
+    if (status == 'COMPLETED' || status == 'DELIVERED') return "Hoàn thành";
+    if (status == 'PENDING') return "Chờ xác nhận";
+    if (status == 'SHIPPED') return "Đang giao";
+    return "Đang xử lý";
   }
-
-  // Helper: Format ngày tạo đơn
-  String get formattedDate {
-    return DateFormat('dd/MM/yyyy HH:mm').format(createdAt);
-  }
-  
-  @override
-  String toString() => jsonEncode(toJson());
 }

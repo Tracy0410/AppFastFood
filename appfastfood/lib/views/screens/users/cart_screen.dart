@@ -1,6 +1,5 @@
 import 'package:appfastfood/models/cartItem.dart';
 import 'package:appfastfood/models/checkout.dart';
-import 'package:appfastfood/models/voucher.dart';
 import 'package:appfastfood/service/api_service.dart';
 import 'package:appfastfood/views/screens/users/checkout_screen.dart';
 import 'package:appfastfood/views/widget/product_card_cart.dart';

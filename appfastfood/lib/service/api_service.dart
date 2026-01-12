@@ -4,7 +4,6 @@ import 'package:appfastfood/models/cartItem.dart';
 import 'package:appfastfood/models/Order.dart';
 import 'package:appfastfood/models/user.dart';
 import 'package:appfastfood/models/promotion.dart';
-import 'package:appfastfood/models/voucher.dart';
 import 'package:appfastfood/utils/storage_helper.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +15,7 @@ class ApiService {
   static const String baseUrl = 'http://192.168.100.248:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
-  static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
+  static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
 
   // Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -89,7 +88,6 @@ class ApiService {
       final token = await StorageHelper.getToken();
       if (token == null) return false;
 
-      // URL này sẽ ghép thành: http://.../api/delete/5
       final uri = Uri.parse('$urlEdit/api/delete/$userId');
 
       print("Dang goi API xoa: $uri"); // In ra để check link
@@ -269,7 +267,7 @@ class ApiService {
         return {'success': false, 'message': 'Bạn chưa đăng nhập'};
       }
 
-      final url = Uri.parse('$urlEdit/users/profile/change-password');
+      final url = Uri.parse('$urlEdit/api/profile/change-password');
 
       final response = await http.post(
         url,
@@ -863,7 +861,7 @@ class ApiService {
       }
 
       // URL ví dụ: http://.../api/admin/orders?status=PENDING
-      final url = Uri.parse('$urlEdit/api/admin/orders$queryString');
+      final url = Uri.parse('$urlEdit/api/orders$queryString');
 
       print("👉 [ADMIN API] Calling: $url"); // Log để debug xem URL đúng chưa
 
@@ -893,7 +891,7 @@ class ApiService {
   Future<bool> updateOrderStatus(int orderId, String newStatus) async {
   try {
     final token = await StorageHelper.getToken();
-    final url = Uri.parse('$urlEdit/api/admin/orders/update-status');
+    final url = Uri.parse('$urlEdit/api/orders/update-status');
 
     print("👉 [ADMIN API] Updating Order #$orderId to $newStatus");
 
@@ -925,7 +923,7 @@ class ApiService {
     try {
       final token = await StorageHelper.getToken();
       // Sửa URL cho đúng chuẩn Node.js (bỏ .php)
-      final url = Uri.parse('$urlEdit/api/admin/stats'); 
+      final url = Uri.parse('$urlEdit/api/stats'); 
 
       final response = await http.get(
         url,
@@ -1059,5 +1057,79 @@ class ApiService {
       print("Lỗi thanh toán nhanh: $e");
     }
     return false;
+  }
+
+  // ================= AI CHAT =================
+ Future<String> chatWithAI({
+  required String question,
+}) async {
+  try {
+    final token = await StorageHelper.getToken();
+    final userId = await StorageHelper.getUserId();
+
+    final url = Uri.parse('$urlEdit/api/ai/chat');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'prompt': question, // ✅ PHẢI LÀ prompt
+        'user_id': userId,  // giữ hay bỏ đều được
+      }),
+    );
+
+  if (response.statusCode == 200) {
+    print('🔥 AI RAW RESPONSE: ${response.body}');
+    final jsonRes = jsonDecode(response.body);
+
+    return jsonRes['answer']?.toString() ?? 'AI chưa có câu trả lời';
+  }
+  else {
+        return 'Lỗi AI (${response.statusCode})';
+      }
+    } catch (e) {
+      return 'Không kết nối được AI';
+    }
+  }
+
+  static Future<List<Promotion>> checkAvailablePromotions(
+    List<dynamic> cartItems,
+  ) async {
+    try {
+      // 1. Map dữ liệu cartItems sang format Server cần: [{product_id: 1, category_id: 2}, ...]
+      // Lưu ý: Sửa 'productId' / 'categoryId' cho đúng tên biến trong Model Cart của bạn
+      final itemsPayload = cartItems
+          .map((e) => {"product_id": e.productId, "category_id": e.categoryId})
+          .toList();
+
+      // 2. Gọi API
+      final response = await http.post(
+        Uri.parse('$urlEdit/api/promotions/check-available'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"items": itemsPayload}),
+      );
+
+      // 3. Xử lý kết quả
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+
+        if (jsonResponse['success'] == true) {
+          final List<dynamic> data = jsonResponse['data'];
+          // Convert List json -> List Voucher
+          return data.map((json) => Promotion.fromJson(json)).toList();
+        } else {
+          // Server trả về success: false
+          throw Exception(jsonResponse['message'] ?? "Lỗi không xác định");
+        }
+      } else {
+        throw Exception("Lỗi kết nối Server: ${response.statusCode}");
+      }
+    } catch (e) {
+      // Ném lỗi ra để bên UI bắt và hiển thị
+      throw Exception("Lỗi tải voucher: $e");
+    }
   }
 }

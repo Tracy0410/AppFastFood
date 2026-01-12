@@ -809,8 +809,8 @@ export default class userController {
         }
     }
 
-    // --- BỔ SUNG CONTROLLER ĐƠN HÀNG ---
-    // API: Lấy danh sách đơn hàng của user
+    // --- Phần Admin ---
+    // API: Lấy danh sách đơn hàng của user ()
     static async getMyOrders(req, res) {
         try {
             const userId = req.userId;
@@ -827,7 +827,7 @@ export default class userController {
         }
     }
 
-    // API: Lấy chi tiết một đơn hàng cụ thể (kèm danh sách sản phẩm bên trong)
+    // API: Lấy chi tiết một đơn hàng cụ thể (kèm danh sách sản phẩm bên trong) Admin
     static async getOrderDetail(req, res) {
         try {
             const { order_id } = req.params; // Lấy order_id từ URL
@@ -937,6 +937,28 @@ export default class userController {
         }
     }
 
+    // Lấy danh sách khuyến mãi
+    static async getPromotions(req, res) {
+        try {
+            const promotions = await userModel.getActivePromotions();
+            
+            // Format lại dữ liệu date
+            const formattedPromos = promotions.map(p => ({
+                ...p,
+                start_date: moment(p.start_date).format('YYYY-MM-DD'),
+                end_date: moment(p.end_date).format('YYYY-MM-DD'),
+            }));
+
+            res.status(200).send({
+                success: true,
+                data: promotions,
+                message: promotions.length > 0 ? "Lấy danh sách khuyến mãi thành công" : "Hiện không có chương trình nào"
+            });
+        } catch (error) {
+            console.log("Lỗi lấy khuyến mãi:", error);
+            res.status(500).send({ message: "Lỗi server khi lấy khuyến mãi." });
+        }
+    }
 }
 // --- HÀM PHỤ TRỢ: TẠO URL VNPAY (Helper Function) ---
 // Để bên ngoài class userController cho gọn

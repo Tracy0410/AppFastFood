@@ -1,4 +1,3 @@
-import 'package:appfastfood/utils/app_colors.dart';
 import 'package:appfastfood/views/screens/users/home_screen.dart';
 import 'package:flutter/material.dart';
 

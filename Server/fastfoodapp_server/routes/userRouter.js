@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import userController from '../controller/userController.js';
+import OrderController from '../controller/orderController.js';
+import PromotionController from '../controller/promotionsController.js';
 import auth from '../middleware/auth.js';
 import multer from 'multer';
 
@@ -65,6 +67,7 @@ userRouter.put('/addresses/setup', auth, userController.setDefaultAddress);
 userRouter.delete('/addresses/delete', auth, userController.deleteAddress);
 
 userRouter.post('/promotions/check-available', userController.checkAvailablePromotions);
+userRouter.get('/promotions/active', userController.getPromotions);
 
 // Lấy danh sách đơn hàng
 userRouter.get('/orders/my-orders', auth, userController.getMyOrders);

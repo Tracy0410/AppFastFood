@@ -1,5 +1,5 @@
 import 'package:appfastfood/models/cartItem.dart';
-import 'package:appfastfood/models/voucher.dart';
+import 'package:appfastfood/models/promotion.dart';
 import 'package:appfastfood/views/screens/users/info/address/address_list.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -31,7 +31,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isLoading = true;
 
   Address? _currentAddress;
-  Voucher? _selectedPromotion; // Lưu object Voucher đã chọn
+  Promotion? _selectedPromotion; // Lưu object Voucher đã chọn
   String _paymentMethod = "COD";
 
   int promotionId = 0;
@@ -74,7 +74,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
 
     // Nếu user chọn 1 voucher và quay lại
-    if (result != null && result is Voucher) {
+    if (result != null && result is Promotion) {
       setState(() {
         _selectedPromotion = result;
       });
@@ -84,7 +84,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Đã áp dụng mã: ${result.title}")));
+      ).showSnackBar(SnackBar(content: Text("Đã áp dụng mã: ${result.name}")));
     }
   }
 
@@ -434,7 +434,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           title: "Mã khuyến mãi",
                           // Nếu đã chọn thì hiện tên, chưa chọn thì nhắc
                           value: _selectedPromotion != null
-                              ? _selectedPromotion!.title
+                              ? _selectedPromotion!.name
                               : "Chọn voucher",
                           icon: Icons.local_offer,
                           isHighlight: _selectedPromotion != null,

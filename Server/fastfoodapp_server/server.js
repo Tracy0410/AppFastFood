@@ -7,6 +7,7 @@ import promotionRouter from './routes/promotionRouter.js';
 import PromotionController from './controller/promotionsController.js';
 import aiRouter from './routes/aiRouter.js'; 
 import orderRouter from './routes/orderRouter.js';
+import adminRouter from './routes/adminRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', orderRouter);
 app.use('/api', productRouter);
 app.use('/api', userRouter);
+app.use('/api',adminRouter);
 // ✅ ROUTE AI
 app.use('/api/ai', aiRouter);
 console.log("👉 GEMINI KEY RAW =", JSON.stringify(process.env.OPENAI_API_KEY));

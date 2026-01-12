@@ -1,5 +1,5 @@
-import userModel from '../models/userModel.js'; // Import Model bạn vừa sửa
-import { execute } from '../config/db.js'; // Vẫn cần dùng cho hàm updateStatus (nếu chưa đưa vào model)
+import userModel from '../models/userModel.js'; 
+import { execute } from '../config/db.js'; 
 
 /**
  * API: Lấy danh sách đơn hàng cho Admin
@@ -13,9 +13,8 @@ export const getAdminOrders = async (req, res) => {
         console.log("👉 API getAdminOrders called with status:", status);
 
         // 1. Gọi hàm từ Model để lấy danh sách đơn hàng
-        // (Model đã xử lý việc lọc status và sort ngày tháng)
         const orders = await userModel.getAllOrders(status);
-
+        
         // Nếu không có đơn hàng nào
         if (!orders || orders.length === 0) {
             return res.status(200).json({ 
@@ -24,17 +23,23 @@ export const getAdminOrders = async (req, res) => {
             });
         }
 
-        // 2. Lấy chi tiết sản phẩm cho từng đơn hàng (Merge chi tiết vào đơn hàng)
-        // Dùng Promise.all để chạy song song cho nhanh
+        // 2. Lấy chi tiết sản phẩm cho từng đơn hàng
+        // SỬA LỖI: Không được log 'ordersWithDetails' bên trong vòng lặp này
         const ordersWithDetails = await Promise.all(orders.map(async (order) => {
             // Gọi hàm getOrderDetail từ Model
             const details = await userModel.getOrderDetail(order.order_id);
+            
+            // Log kiểm tra từng chi tiết đơn (nếu cần)
+            console.log(`Chi tiết đơn ${order.order_id}:`, details);
             
             return {
                 ...order,
                 order_details: details || []
             };
         }));
+
+        // ✅ Log kết quả SAU KHI đã tạo xong biến
+        console.log("✅ Final Orders Data:", JSON.stringify(ordersWithDetails, null, 2));
 
         res.status(200).json({ 
             success: true, 
@@ -77,7 +82,7 @@ export const updateOrderStatus = async (req, res) => {
             });
         }
 
-        // Thực thi Update (Lưu ý: Tên bảng phải khớp với Model là 'Orders')
+        // Thực thi Update
         const sql = `UPDATE Orders SET order_status = ? WHERE order_id = ?`;
         const [result] = await execute(sql, [status, order_id]);
 
@@ -102,4 +107,3 @@ export const updateOrderStatus = async (req, res) => {
         });
     }
 };
-

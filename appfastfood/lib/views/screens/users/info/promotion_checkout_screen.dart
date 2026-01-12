@@ -1,5 +1,5 @@
 import 'package:appfastfood/models/cartItem.dart';
-import 'package:appfastfood/models/voucher.dart';
+import 'package:appfastfood/models/promotion.dart';
 import 'package:appfastfood/service/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -18,7 +18,7 @@ class PromotionCheckoutScreen extends StatefulWidget {
 }
 
 class _PromotionCheckoutScreenState extends State<PromotionCheckoutScreen> {
-  List<Voucher> _availableVouchers = [];
+  List<Promotion> _availableVouchers = [];
   bool _isLoading = true;
   String? _errorMessage;
   @override
@@ -73,11 +73,11 @@ class _PromotionCheckoutScreenState extends State<PromotionCheckoutScreen> {
                   child: ListTile(
                     leading: const Icon(Icons.percent, color: Colors.red),
                     title: Text(
-                      voucher.title,
+                      voucher.name,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      "Giảm ${voucher.discountPercent}% - HSD: ${DateFormat('dd/MM').format(voucher.expiryDate)}",
+                      "Giảm ${voucher.discountPercent}% - HSD: ${DateFormat('dd/MM').format(voucher.endDate)}",
                     ),
                     trailing: ElevatedButton(
                       onPressed: () {

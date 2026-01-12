@@ -2,8 +2,8 @@ import 'package:appfastfood/models/Order.dart';
 import 'package:appfastfood/views/screens/users/home_interface/favorite_content.dart';
 import 'package:appfastfood/views/screens/users/home_interface/home_content.dart';
 import 'package:appfastfood/views/screens/users/faq_screen.dart';
+import 'package:appfastfood/views/screens/users/home_interface/order_list_screem.dart';
 import 'package:appfastfood/views/screens/users/home_interface/promotion_screen.dart';
-import 'package:appfastfood/views/screens/users/order_list_screem.dart';
 import 'package:flutter/material.dart';
 import '../../../models/products.dart';
 import '../../../service/api_service.dart';
@@ -200,7 +200,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
           onRefresh: _refreshFavData,
         );
       case 3:
-        return OrderListScreen();
+        return OrderListScreen(
+          onRefresh: _loadOrderData,
+        );
       case 4:
         return const FaqScreen();
       default:

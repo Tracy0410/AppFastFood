@@ -1,6 +1,6 @@
-
+import 'package:appfastfood/views/screens/users/setting/setting_screen.dart';
+import 'package:appfastfood/views/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
-import '../../views/screens/login_screen.dart';
 import '../../views/screens/admin/admin_order_screen.dart'; // Đảm bảo đúng đường dẫn tới file AdminOrderScreen
 
 
@@ -28,10 +28,9 @@ class AdminSideMenu extends StatelessWidget {
               ),
               onPressed: () {
                 // Thoát hoàn toàn và về màn hình Login
-                Navigator.pushAndRemoveUntil(
+                Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
+                  MaterialPageRoute(builder: (context) => const WelcomeScreen())
                 );
               },
               child: const Text("Đăng xuất", style: TextStyle(color: Colors.white)),
@@ -96,7 +95,7 @@ class AdminSideMenu extends StatelessWidget {
                   Navigator.pop(context);
                 }),
                 _buildMenuItem(context, Icons.settings_outlined, "Cài đặt", () {
-                  Navigator.pop(context);
+                  Navigator.push(context,MaterialPageRoute(builder: (context) => const SettingScreen()));
                 }),
                 _buildMenuItem(context, Icons.chat_bubble_outline, "Bình luận", () {
                   Navigator.pop(context);
