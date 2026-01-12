@@ -791,6 +791,7 @@ export default class userController {
             res.status(500).json({ success: false, message: 'Đặt hàng thất bại: ' + error.message });
         }
     }
+
     static async checkAvailablePromotions(req, res) {
         try {
             const { product_id,category_id } = req.body; 
@@ -805,6 +806,66 @@ export default class userController {
         } catch (error) {
             console.error("Check Promo Error:", error);
             res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // --- BỔ SUNG CONTROLLER ĐƠN HÀNG ---
+    // API: Lấy danh sách đơn hàng của user
+    static async getMyOrders(req, res) {
+        try {
+            const userId = req.userId;
+            const orders = await userModel.getOrdersByUserId(userId);
+            
+            return res.status(200).json({
+                success: true,
+                message: "Lấy danh sách đơn hàng thành công",
+                data: orders
+            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ success: false, message: "Lỗi server lấy đơn hàng" });
+        }
+    }
+
+    // API: Lấy chi tiết một đơn hàng cụ thể (kèm danh sách sản phẩm bên trong)
+    static async getOrderDetail(req, res) {
+        try {
+            const { order_id } = req.params; // Lấy order_id từ URL
+            
+            // 1. Lấy thông tin chung đơn hàng
+            const orderInfo = await userModel.getOrderById(order_id);
+            if (!orderInfo) {
+                return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+            }
+
+            // 2. Lấy danh sách sản phẩm trong đơn
+            const items = await userModel.getOrderDetail(order_id);
+
+            // Gộp lại trả về
+            return res.status(200).json({
+                success: true,
+                data: {
+                    ...orderInfo,
+                    items: items
+                }
+            });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ success: false, message: "Lỗi server lấy chi tiết đơn" });
+        }
+    }
+    
+    // API: Lấy toàn bộ đơn hàng (Dành cho Admin)
+    static async getAllOrdersAdmin(req, res) {
+        try {
+            // Có thể kiểm tra role admin ở đây nếu cần
+            const orders = await userModel.getAllOrders();
+            return res.status(200).json({
+                success: true,
+                data: orders
+            });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: "Lỗi server" });
         }
     }
 

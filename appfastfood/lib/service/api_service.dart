@@ -108,7 +108,6 @@ class ApiService {
         "Response Body: ${response.body}",
       ); // Quan trọng: Xem server báo lỗi gì
 
->>>>>>> origin/danh
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
         return jsonResponse['success'] == true;
@@ -844,67 +843,141 @@ class ApiService {
     return []; // Trả về danh sách rỗng nếu lỗi
   }
 
-  // service/api_service.dart
-
-  static Future<List<Voucher>> checkAvailablePromotions(
-    List<CartItem> cartItems,
-  ) async {
-    try {
-      final pIds = cartItems.map((e) => e.productId).toSet().toList();
-      final cIds = cartItems.map((e) => e.categoryId).toSet().toList();
-      final response = await http.post(
-        Uri.parse('$urlEdit/api/promotions/check-available'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "product_id": pIds, // Gửi mảng [1, 2, 3]
-          "category_id": cIds, // Gửi mảng [5, 6]
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        if (jsonResponse['success'] == true) {
-          final List<dynamic> data = jsonResponse['data'];
-          return data.map((json) => Voucher.fromJson(json)).toList();
-        }
-      }
-      return []; // Trả về rỗng nếu lỗi hoặc không có voucher
-    } catch (e) {
-      print("Lỗi API checkAvailablePromotions: $e");
-      throw e;
-    }
+   // Đăng nhập Admin (Dùng chung login của bạn, giữ nguyên logic lưu role)
+  Future<Map<String, dynamic>> loginAdmin(String username, String password) async {
+    return login(username, password); // Gọi lại hàm login ở trên
   }
 
-  // ================= AI CHAT =================
-  Future<String> chatWithAI({required String question}) async {
+  // 1. Lấy danh sách đơn hàng Admin (ĐÃ SỬA LỖI FILTER)
+  Future<List<dynamic>> getAdminOrders(String status) async {
     try {
       final token = await StorageHelper.getToken();
-      final userId = await StorageHelper.getUserId();
+      
+      // Xử lý tham số query string chuẩn xác
+      // Nếu status có dữ liệu => thêm ?status=...
+      // Nếu status rỗng => không thêm gì (để backend tự hiểu là lấy all hoặc xử lý mặc định)
+      String queryString = "";
+      if (status.isNotEmpty && status != 'ALL') {
+         queryString = "?status=$status";
+      }
 
-      final url = Uri.parse('$urlEdit/api/ai/chat');
+      // URL ví dụ: http://.../api/admin/orders?status=PENDING
+      final url = Uri.parse('$urlEdit/api/admin/orders$queryString');
 
-      final response = await http.post(
+      print("👉 [ADMIN API] Calling: $url"); // Log để debug xem URL đúng chưa
+
+      final response = await http.get(
         url,
         headers: {
           'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'prompt': question, // ✅ PHẢI LÀ prompt
-          'user_id': userId, // giữ hay bỏ đều được
-        }),
       );
 
       if (response.statusCode == 200) {
-        print('🔥 AI RAW RESPONSE: ${response.body}');
-        final jsonRes = jsonDecode(response.body);
-
-        return jsonRes['answer']?.toString() ?? 'AI chưa có câu trả lời';
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return data['data']; // Trả về List đơn hàng
+        }
       } else {
-        return 'Lỗi AI (${response.statusCode})';
+        print("❌ Lỗi Server: ${response.statusCode} - ${response.body}");
       }
     } catch (e) {
-      return 'Không kết nối được AI';
+      print("❌ Lỗi getAdminOrders: $e");
     }
+    return [];
+  }
+
+  // 2. Cập nhật trạng thái đơn hàng (Duyệt/Hủy/Giao)
+  Future<bool> updateOrderStatus(int orderId, String newStatus) async {
+  try {
+    final token = await StorageHelper.getToken();
+    final url = Uri.parse('$urlEdit/api/admin/orders/update-status');
+
+    print("👉 [ADMIN API] Updating Order #$orderId to $newStatus");
+
+    // SỬA LẠI: thay http.put bằng http.post
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'order_id': orderId,
+        'status': newStatus,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['success'] == true;
+    }
+  } catch (e) {
+    print("❌ Lỗi updateOrderStatus: $e");
+  }
+  return false;
+}
+
+  // 3. Lấy thống kê Dashboard (Doanh thu, Số đơn)
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    try {
+      final token = await StorageHelper.getToken();
+      // Sửa URL cho đúng chuẩn Node.js (bỏ .php)
+      final url = Uri.parse('$urlEdit/api/admin/stats'); 
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        }
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return data['data']; // Mong đợi: { revenue: 100000, total_orders: 5, ... }
+        }
+      }
+    } catch (e) {
+      print("❌ Lỗi getDashboardStats: $e");
+    }
+    return {'revenue': 0, 'total_orders': 0};
+  }
+
+  // 4. (MỚI) Xóa sản phẩm (Dành cho Admin quản lý món ăn)
+  Future<bool> deleteProduct(int productId) async {
+    try {
+      final token = await StorageHelper.getToken();
+      final url = Uri.parse('$urlEdit/api/products/$productId'); // API xóa theo ID
+
+      final response = await http.delete(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+    } catch (e) {
+      print("❌ Lỗi deleteProduct: $e");
+    }
+    return false;
+  }
+  double safeParseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      // Xử lý nếu có dấu chấm/thập phân
+      String cleaned = value.replaceAll(RegExp(r'[^0-9.-]'), '');
+      return double.tryParse(cleaned) ?? 0.0;
+    }
+    return 0.0;
   }
 }

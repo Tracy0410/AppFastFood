@@ -65,4 +65,10 @@ userRouter.put('/addresses/setup', auth, userController.setDefaultAddress);
 userRouter.delete('/addresses/delete', auth, userController.deleteAddress);
 
 userRouter.post('/promotions/check-available', userController.checkAvailablePromotions);
+
+// Lấy danh sách đơn hàng
+userRouter.get('/orders/my-orders', auth, userController.getMyOrders);
+
+// Lấy chi tiết đơn hàng
+userRouter.get('/orders/detail/:order_id', auth, userController.getOrderDetail);
 export default userRouter;
