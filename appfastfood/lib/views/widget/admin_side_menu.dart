@@ -1,8 +1,8 @@
-import 'package:appfastfood/views/screens/users/setting/setting_screen.dart';
-import 'package:appfastfood/views/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
+import '../../views/screens/login_screen.dart';
 import '../../views/screens/admin/admin_order_screen.dart'; // Đảm bảo đúng đường dẫn tới file AdminOrderScreen
-
+import '../../views/screens/admin/admin_product_screen.dart';
+import '../../views/screens/admin/admin_customer_screen.dart';
 
 class AdminSideMenu extends StatelessWidget {
   const AdminSideMenu({super.key});
@@ -28,9 +28,10 @@ class AdminSideMenu extends StatelessWidget {
               ),
               onPressed: () {
                 // Thoát hoàn toàn và về màn hình Login
-                Navigator.push(
+                Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const WelcomeScreen())
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
                 );
               },
               child: const Text("Đăng xuất", style: TextStyle(color: Colors.white)),
@@ -75,9 +76,21 @@ class AdminSideMenu extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
+                
                 _buildMenuItem(context, Icons.restaurant, "Sản phẩm", () {
-                  Navigator.pop(context);
-                }),
+                  Navigator.pop(context); // Đóng Drawer trước
+                  Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const AdminProductScreen()),
+                  );
+                  }),
+
+                _buildMenuItem(context, Icons.person_outline, "Khách hàng", () {
+                  Navigator.pop(context); // Đóng Drawer trước
+                  Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const AdminCustomerScreen()),
+                  );
+                  }),
+
                 _buildMenuItem(context, Icons.assignment, "Đơn hàng", () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -85,9 +98,7 @@ class AdminSideMenu extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => const AdminOrderScreen()),
                   );
                 }),
-                _buildMenuItem(context, Icons.person_outline, "Khách hàng", () {
-                  Navigator.pop(context);
-                }),
+
                 _buildMenuItem(context, Icons.notifications_none, "Thông báo", () {
                   Navigator.pop(context);
                 }),
@@ -95,7 +106,7 @@ class AdminSideMenu extends StatelessWidget {
                   Navigator.pop(context);
                 }),
                 _buildMenuItem(context, Icons.settings_outlined, "Cài đặt", () {
-                  Navigator.push(context,MaterialPageRoute(builder: (context) => const SettingScreen()));
+                  Navigator.pop(context);
                 }),
                 _buildMenuItem(context, Icons.chat_bubble_outline, "Bình luận", () {
                   Navigator.pop(context);
