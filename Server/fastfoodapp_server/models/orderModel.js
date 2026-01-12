@@ -9,14 +9,9 @@ class Order{
         o.order_status,
         o.payment_status,
         o.total_amount,
-        
-        -- Lấy phương thức thanh toán
         (SELECT method FROM Payment WHERE order_id = o.order_id ORDER BY payment_time DESC LIMIT 1) as payment_method,
-        
-        -- Tóm tắt món ăn (Ví dụ: Gà x2, Coca x1)
-        GROUP_CONCAT(CONCAT(p.name, ' (x', od.quantity, ') - ', (p.price * od.quantity)) SEPARATOR ', ') as items_summary,
-        
-        -- Ảnh đại diện (Lấy ảnh món đầu tiên)
+        GROUP_CONCAT(
+        CONCAT(p.name, ' - ', FORMAT(p.price * od.quantity, 0), ' VNĐ') SEPARATOR ', ') as items_summary,
         (SELECT image_url FROM Products p2 JOIN Order_Details od2 ON p2.product_id = od2.product_id WHERE od2.order_id = o.order_id LIMIT 1) as thumbnail
 
     FROM Orders o
@@ -74,6 +69,29 @@ static async checkOrderForPayment(orderId, userId){
     const [rows] = await execute(query, [orderId, userId]);
     return rows[0];
     }
+
+    static async cancelOrder(orderId, userId) {
+    try {
+        const checkQuery = `
+            SELECT order_id FROM Orders 
+            WHERE order_id = ? AND user_id = ? 
+            AND order_status = 'PENDING' 
+            AND payment_status = 'UNPAID'
+        `;
+        const [rows] = await execute(checkQuery, [orderId, userId]);
+
+        if (rows.length === 0) {
+            return false;
+        }
+        const updateQuery = `UPDATE Orders SET order_status = 'CANCELLED' WHERE order_id = ?`;
+        await execute(updateQuery, [orderId]);
+        
+        return true;
+    } catch (e) {
+        console.error(e);
+        throw e;
+    }
+}
     
 }
 

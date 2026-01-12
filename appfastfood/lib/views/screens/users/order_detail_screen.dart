@@ -1,12 +1,12 @@
 import 'package:appfastfood/models/order.dart';
 import 'package:appfastfood/service/api_service.dart';
+import 'package:appfastfood/views/screens/users/ai_chat_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Để copy mã đơn
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-// Sửa đường dẫn đúng service
 
 class OrderDetailScreen extends StatefulWidget {
-  final int orderId; // Nhận ID từ màn hình danh sách
+  final int orderId;
 
   const OrderDetailScreen({super.key, required this.orderId});
 
@@ -18,6 +18,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   late Future<OrderModel?> _orderFuture;
   final ApiService _apiService = ApiService();
   bool _isActionLoading = true;
+  bool isActionCancel = true;
   @override
   void initState() {
     super.initState();
@@ -29,6 +30,70 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     setState(() {
       _orderFuture = _apiService.getOrderDetail(widget.orderId);
     });
+  }
+
+  // Hàm xử lý khi bấm nút Hủy
+  Future<void> _handleCancelOrder() async {
+    bool? confirm = await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Xác nhận hủy"),
+        content: const Text("Bạn có chắc chắn muốn hủy đơn hàng này không?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Đóng"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Hủy đơn", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    // Bắt đầu Loading
+    setState(() => isActionCancel = true);
+
+    try {
+      // 2. Gọi API
+      bool success = await _apiService.cancelOrder(widget.orderId);
+
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Đã hủy đơn hàng"),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _loadData(); // Load lại trang
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Lỗi: Không thể hủy đơn hàng này"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Nếu có lỗi code thì in ra xem
+      print("Lỗi ở UI: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Lỗi ứng dụng: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      // QUAN TRỌNG NHẤT: Dù thành công hay thất bại, luôn tắt Loading ở đây
+      if (mounted) {
+        setState(() => isActionCancel = false);
+      }
+    }
   }
 
   // Hàm xử lý Copy mã đơn
@@ -281,14 +346,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             if (itemStr.contains('-')) {
               // Tách giá tiền ra (Lấy phần sau dấu gạch ngang cuối cùng)
               int lastDashIndex = itemStr.lastIndexOf('-');
-              String infoPart = itemStr
-                  .substring(0, lastDashIndex)
-                  .trim(); // "Gà rán (x2)"
-              String pricePart = itemStr
-                  .substring(lastDashIndex + 1)
-                  .trim(); // "100000"
-
-              // Format giá
+              String infoPart = itemStr.substring(0, lastDashIndex).trim();
+              String pricePart = itemStr.substring(lastDashIndex + 1).trim();
               double priceVal = double.tryParse(pricePart) ?? 0;
               price = currency.format(priceVal);
 
@@ -300,7 +359,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon món ăn (hoặc ảnh nếu có logic lấy ảnh từng món)
                   Container(
                     width: 40,
                     height: 40,
@@ -315,8 +373,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-
-                  // Tên món
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,8 +387,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ],
                     ),
                   ),
-
-                  // Giá tiền
                   Text(
                     price,
                     style: const TextStyle(
@@ -349,7 +403,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  // --- WIDGET 3: CHI TIẾT THANH TOÁN ---
   Widget _buildPaymentDetails(OrderModel order) {
     final currency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
 
@@ -418,7 +471,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  // Helper tạo dòng thông tin nhỏ
   Widget _buildRowInfo(
     String label,
     String value, {
@@ -444,7 +496,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  // --- WIDGET 4: BOTTOM ACTION BAR ---
   Widget _buildBottomAction(OrderModel order) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -460,11 +511,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ),
       child: Row(
         children: [
-          // Nút Liên hệ
           Expanded(
             child: OutlinedButton.icon(
               onPressed: () {
-                // Logic gọi điện hoặc chat
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AIChatScreen()),
+                );
               },
               icon: const Icon(Icons.headset_mic, size: 18),
               label: const Text("Hỗ trợ"),
@@ -476,8 +529,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Nút Hành động chính (Thanh toán / Đặt lại)
+          if (order.status == 'PENDING' && order.paymentStatus == 'UNPAID') ...[
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _handleCancelOrder,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: Colors.red),
+                  foregroundColor: Colors.red,
+                ),
+                child: const Text(
+                  "Hủy đơn",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
           if (order.isUnpaidVNPay) ...[
             Expanded(
               flex: 2,
@@ -504,9 +572,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             Expanded(
               flex: 2,
               child: ElevatedButton(
-                onPressed: () {
-                  // Logic đặt lại đơn hàng cũ
-                },
+                onPressed: () {},
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE95322),
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -522,7 +588,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
             ),
           ] else ...[
-            // Nếu đơn đang giao/chờ xác nhận thì chỉ cần nút Hỗ trợ full width
             const SizedBox(),
           ],
         ],

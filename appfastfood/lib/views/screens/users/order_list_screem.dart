@@ -63,7 +63,6 @@ class _OrderListScreenState extends State<OrderListScreen>
     super.build(context);
 
     // Tạo 3 danh sách riêng biệt
-    // Bạn nhớ kiểm tra các chữ 'PENDING', 'SHIPPED' này có khớp với Database của bạn không nhé
     final listProcessing = _filterOrders([
       'PENDING',
       'CONFIRMED',
@@ -84,8 +83,8 @@ class _OrderListScreenState extends State<OrderListScreen>
       child: Scaffold(
         appBar: AppBar(
           title: Transform.translate(
-            offset: Offset(0, -10),
-            child: Text(
+            offset: const Offset(0, -10),
+            child: const Text(
               "Đơn hàng của tôi",
               style: TextStyle(
                 color: Colors.black,
@@ -93,18 +92,13 @@ class _OrderListScreenState extends State<OrderListScreen>
               ),
             ),
           ),
-          backgroundColor: Color(0xFFFFC529),
+          backgroundColor: const Color(0xFFFFC529),
           elevation: 0,
           centerTitle: true,
           automaticallyImplyLeading: false,
           bottom: const TabBar(
             labelColor: Color(0xFFE95322), // Màu chữ khi chọn
-            unselectedLabelColor: Color.fromARGB(
-              255,
-              255,
-              255,
-              255,
-            ), // Màu chữ khi không chọn
+            unselectedLabelColor: Colors.white, // Màu chữ khi không chọn
             indicatorColor: Color(0xFFE95322), // Màu gạch dưới
             tabs: [
               Tab(text: "Đang xử lý"),
@@ -114,18 +108,12 @@ class _OrderListScreenState extends State<OrderListScreen>
           ),
         ),
         backgroundColor: Colors.grey[100],
-
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
             : TabBarView(
                 children: [
-                  // Tab 1: Đang xử lý
                   _buildListTab(listProcessing),
-
-                  // Tab 2: Hoàn thành
                   _buildListTab(listCompleted),
-
-                  // Tab 3: Đã hủy
                   _buildListTab(listCancelled),
                 ],
               ),
@@ -133,16 +121,14 @@ class _OrderListScreenState extends State<OrderListScreen>
     );
   }
 
-  // Widget dùng chung để vẽ danh sách cho từng Tab
   Widget _buildListTab(List<OrderModel> orders) {
     return RefreshIndicator(
-      onRefresh: _fetchOrders, // Kéo tab nào cũng refresh lại toàn bộ
+      onRefresh: _fetchOrders,
       child: orders.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
               padding: const EdgeInsets.all(12),
-              physics:
-                  const AlwaysScrollableScrollPhysics(), // Để list rỗng vẫn kéo refresh được
+              physics: const AlwaysScrollableScrollPhysics(),
               itemCount: orders.length,
               itemBuilder: (context, index) {
                 return _buildOrderItem(orders[index]);
@@ -151,7 +137,6 @@ class _OrderListScreenState extends State<OrderListScreen>
     );
   }
 
-  // Widget hiển thị khi tab trống
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -168,9 +153,14 @@ class _OrderListScreenState extends State<OrderListScreen>
     );
   }
 
-  // Widget hiển thị từng thẻ đơn hàng (Code cũ giữ nguyên)
   Widget _buildOrderItem(OrderModel order) {
-    final currency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+    // --- FORMAT TIỀN: VNĐ, không số thập phân ---
+    final currency = NumberFormat.currency(
+      locale: 'vi_VN',
+      symbol: 'VNĐ',
+      decimalDigits: 0,
+    );
+
     final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(order.date);
 
     return Card(
@@ -183,17 +173,15 @@ class _OrderListScreenState extends State<OrderListScreen>
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  OrderDetailScreen(orderId: order.id), // Truyền ID sang Detail
+              builder: (context) => OrderDetailScreen(orderId: order.id),
             ),
-          ).then(
-            (_) => _fetchOrders(),
-          ); // Khi quay lại thì reload để cập nhật trạng thái mới
+          ).then((_) => _fetchOrders());
         },
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
             children: [
+              // --- PHẦN TRÊN: ẢNH + THÔNG TIN ---
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -253,27 +241,13 @@ class _OrderListScreenState extends State<OrderListScreen>
                   ),
                 ],
               ),
-              const Divider(),
+              const Divider(height: 24),
+
+              // --- PHẦN DƯỚI: STATUS (TRÁI) - TIỀN (PHẢI) ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Tổng tiền",
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      Text(
-                        currency.format(order.totalAmount),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFE95322),
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
+                  // 1. Trạng thái đơn hàng (Đẩy sang trái)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -294,6 +268,27 @@ class _OrderListScreenState extends State<OrderListScreen>
                         fontSize: 12,
                       ),
                     ),
+                  ),
+
+                  // 2. Tổng tiền (Đẩy sang phải)
+                  Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.end, // Căn lề phải cho text
+                    children: [
+                      const Text(
+                        "Tổng tiền",
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        currency.format(order.totalAmount),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFE95322),
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

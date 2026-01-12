@@ -942,4 +942,28 @@ class ApiService {
     }
     return false;
   }
+
+  Future<bool> cancelOrder(int orderId) async {
+    try {
+      final token = await StorageHelper.getToken();
+      final url = Uri.parse('$urlEdit/api/order/cancel');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'orderId': orderId}),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonRes = jsonDecode(response.body);
+        return jsonRes['success'] == true;
+      }
+    } catch (e) {
+      print("Lỗi hủy đơn: $e");
+    }
+    return false;
+  }
 }
