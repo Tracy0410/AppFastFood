@@ -450,17 +450,10 @@ export default class userModel {
                 promotion_detail_id: appliedDetailId
             });
         }
-
-        // 3. Phí Ship & Thuế
-        // Giả sử phí ship cố định, hoặc bạn query bảng Address để tính
-        let shippingFee = shippingAddressId ? 15000 : 0; 
-        
-        // Thuế 8% (Ví dụ) trên số tiền sau khi giảm giá
+        let shippingFee = shippingAddressId ? 0 : 0; 
         const taxRate = 0.08; 
         const taxableAmount = subtotal - totalDiscountAmount;
         const taxFee = taxableAmount * taxRate;
-
-        // Tổng tiền cuối cùng
         let totalAmount = taxableAmount + taxFee + shippingFee;
         if (totalAmount < 0) totalAmount = 0;
 
@@ -737,5 +730,4 @@ export default class userModel {
             throw new Error(e.message);
         }
     }
-    
 }
