@@ -1,4 +1,4 @@
-import 'package:appfastfood/models/order.dart';
+import 'package:appfastfood/models/Order.dart';
 import 'package:appfastfood/views/screens/users/home_interface/favorite_content.dart';
 import 'package:appfastfood/views/screens/users/home_interface/home_content.dart';
 import 'package:appfastfood/views/screens/users/faq_screen.dart';

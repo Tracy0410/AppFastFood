@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:appfastfood/models/address.dart';
 import 'package:appfastfood/models/cartItem.dart';
-import 'package:appfastfood/models/order.dart';
+import 'package:appfastfood/models/Order.dart';
 import 'package:appfastfood/models/user.dart';
 import 'package:appfastfood/models/promotion.dart';
 import 'package:appfastfood/models/voucher.dart';
