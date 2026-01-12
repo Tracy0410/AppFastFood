@@ -30,9 +30,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
     _scrollToBottom();
 
     try {
-      final reply = await apiService.chatWithAI(
-        question: text,
-      );
+      final reply = await apiService.chatWithAI(question: text);
 
       setState(() {
         messages.add({"text": reply, "isUser": false});
@@ -106,19 +104,17 @@ class _AIChatScreenState extends State<AIChatScreen> {
                 final isUser = msg['isUser'] as bool;
 
                 return Align(
-                  alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment: isUser
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
                     constraints: BoxConstraints(
-                      maxWidth:
-                          MediaQuery.of(context).size.width * 0.75,
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
                     ),
                     decoration: BoxDecoration(
-                      color: isUser
-                          ? Colors.orange[100]
-                          : Colors.grey[300],
+                      color: isUser ? Colors.orange[100] : Colors.grey[300],
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

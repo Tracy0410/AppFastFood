@@ -46,33 +46,31 @@ class OderControllder{
 
   // --- C. XỬ LÝ THANH TOÁN LẠI (Repayment VNPay) ---
   static async retryPayment(req, res) {
-      try {
-          const userId = req.userId;
-          const { orderId } = req.body;
-
+    try {
+      const userId = req.userId;
+      const { orderId } = req.body;
           // 1. Kiểm tra đơn hàng có hợp lệ để thanh toán không
-          const order = await OrderModel.checkOrderForPayment(orderId, userId);
+      const order = await OrderModel.checkOrderForPayment(orderId, userId);
           
-          if (!order) {
-              return res.status(400).send({ message: "Đơn hàng không tồn tại hoặc đã thanh toán/đã hủy." });
-          }
-          const result = await userModel.updatePaymentStatus(orderId,'PAID');
-          if(result){
-            res.status(200).send({
-              success: true,
-              message: "Thanh toán thành công (Test Mode)"
-            });
-          }else {
-            res.status(500).send({ success: false, message: "Lỗi cập nhật DB" });
-          }
-
-      } catch (err) {
-          console.log(err);
-          res.status(500).send({ success: false, message: "Lỗi Server: " + err.message });
+      if (!order) {
+        return res.status(400).send({ message: "Đơn hàng không tồn tại hoặc đã thanh toán/đã hủy." });
       }
+      const result = await userModel.updatePaymentStatus(orderId,'PAID');
+      if(result){
+        res.status(200).send({
+          success: true,
+          message: "Thanh toán thành công (Test Mode)"
+        });
+      }else {
+        res.status(500).send({ success: false, message: "Lỗi cập nhật DB" });
+      }
+    } catch (err) {
+      console.log(err);
+      res.status(500).send({ success: false, message: "Lỗi Server: " + err.message });
+    }
   }
 
-  // Lấy thông báo trạng thái đơn hàng gần nhất
+    // Lấy thông báo trạng thái đơn hàng gần nhất
   static async getOrderStatusNotification(req, res) {
     try {
       const userId = req.userId;
@@ -131,5 +129,26 @@ class OderControllder{
       res.status(500).send({ message: "Lỗi server." });
     }
   }
+
+  static async cancelOrder(req, res) {
+    try {
+        const userId = req.userId;
+        const { orderId } = req.body;
+
+        const isCancelled = await OrderModel.cancelOrder(orderId, userId);
+
+        if (isCancelled) {
+            res.status(200).json({ success: true, message: "Đã hủy đơn hàng thành công." });
+        } else {
+            res.status(400).json({ 
+                success: false, 
+                message: "Không thể hủy đơn hàng này (Đã được xác nhận hoặc đã thanh toán)." 
+            });
+        }
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Lỗi server: " + err.message });
+    }
+  }
 }
+
 export default OderControllder;

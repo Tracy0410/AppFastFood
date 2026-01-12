@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../models/products.dart';
 
 class ProductCard extends StatelessWidget {
@@ -8,6 +9,12 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final formatCurrency = NumberFormat.currency(
+      locale: 'vi_VN',
+      symbol: 'VNĐ',
+      decimalDigits: 0,
+    );
+
     return Container(
       padding: EdgeInsets.all(5),
       child: Column(
@@ -60,7 +67,16 @@ class ProductCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 8),
-              Text("${product.price} VNĐ"),
+
+              // 3. Sử dụng formatter ở đây
+              Text(
+                formatCurrency.format(product.price),
+                style: TextStyle(
+                  fontWeight:
+                      FontWeight.bold, // Nên in đậm giá tiền cho dễ nhìn
+                  color: Colors.red, // (Tuỳ chọn) Đổi màu giá tiền cho nổi bật
+                ),
+              ),
             ],
           ),
           SizedBox(height: 10),

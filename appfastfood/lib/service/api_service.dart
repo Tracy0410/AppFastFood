@@ -4,6 +4,7 @@ import 'package:appfastfood/models/cartItem.dart';
 import 'package:appfastfood/models/Order.dart';
 import 'package:appfastfood/models/user.dart';
 import 'package:appfastfood/models/promotion.dart';
+import 'package:appfastfood/models/reviewModel.dart';
 import 'package:appfastfood/utils/storage_helper.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:http/http.dart' as http;
@@ -1057,6 +1058,60 @@ class ApiService {
       print("Lỗi thanh toán nhanh: $e");
     }
     return false;
+  }
+
+  Future<bool> cancelOrder(int orderId) async {
+    try {
+      final token = await StorageHelper.getToken();
+      final url = Uri.parse('$urlEdit/api/order/cancel');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'orderId': orderId}),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonRes = jsonDecode(response.body);
+        return jsonRes['success'] == true;
+      }
+    } catch (e) {
+      print("Lỗi hủy đơn: $e");
+    }
+    return false;
+  }
+
+  Future<bool> submitReviews(List<ReviewModel> reviews) async {
+    // Đường dẫn API (Sửa lại IP máy bạn nếu cần)
+    final token = await StorageHelper.getToken();
+    final String url = '$baseUrl/api/reviews/add';
+
+    try {
+      List<Map<String, dynamic>> reviewsJson = reviews
+          .map((e) => e.toJson())
+          .toList();
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({"reviews": reviewsJson}),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else {
+        print("Lỗi Server trả về: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("Lỗi kết nối API: $e");
+      return false;
+    }
   }
 
   // ================= AI CHAT =================
