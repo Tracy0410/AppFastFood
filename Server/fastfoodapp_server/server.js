@@ -8,6 +8,7 @@ import PromotionController from './controller/promotionsController.js';
 import aiRouter from './routes/aiRouter.js'; 
 import orderRouter from './routes/orderRouter.js';
 import reviewRouter from './routes/ReviewRouter.js'
+import adminRouter from './routes/adminRouter.js';
 dotenv.config();
 
 const app = express();
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes\
+app.use('/api/admin', adminRouter);
 app.use('/api', reviewRouter);
 app.use('/api', orderRouter);
 app.use('/api', productRouter);

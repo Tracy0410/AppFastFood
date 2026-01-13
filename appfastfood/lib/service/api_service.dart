@@ -14,7 +14,7 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.100.248:8001'; //máy thật
+  static const String baseUrl = 'http://10.13.89.3:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
   static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
@@ -37,6 +37,7 @@ class ApiService {
           jsonResponse['token'] != null) {
         await StorageHelper.saveToke(jsonResponse['token']);
         await StorageHelper.saveUserId(jsonResponse['user']['user_id']);
+        await StorageHelper.saveRole(jsonResponse['user']['role']);
 
         return jsonResponse;
       } else {
@@ -996,5 +997,145 @@ class ApiService {
       print("Lỗi kết nối API: $e");
       return false;
     }
+  }
+
+  Future<Map<String, dynamic>> loginAdmin(
+    String username,
+    String password,
+  ) async {
+    return login(username, password); // Gọi lại hàm login ở trên
+  }
+
+  // 1. Lấy danh sách đơn hàng Admin (ĐÃ SỬA LỖI FILTER)
+  Future<List<dynamic>> getAdminOrders(String status) async {
+    try {
+      final token = await StorageHelper.getToken();
+
+      // Xử lý tham số query string chuẩn xác
+      // Nếu status có dữ liệu => thêm ?status=...
+      // Nếu status rỗng => không thêm gì (để backend tự hiểu là lấy all hoặc xử lý mặc định)
+      String queryString = "";
+      if (status.isNotEmpty && status != 'ALL') {
+        queryString = "?status=$status";
+      }
+
+      // URL ví dụ: http://.../api/admin/orders?status=PENDING
+      final url = Uri.parse('$urlEdit/api/admin/orders$queryString');
+
+      print("👉 [ADMIN API] Calling: $url"); // Log để debug xem URL đúng chưa
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return data['data']; // Trả về List đơn hàng
+        }
+      } else {
+        print("❌ Lỗi Server: ${response.statusCode} - ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Lỗi getAdminOrders: $e");
+    }
+    return [];
+  }
+
+  // 2. Cập nhật trạng thái đơn hàng (Duyệt/Hủy/Giao)
+  Future<bool> updateOrderStatus(int orderId, String newStatus) async {
+    try {
+      final token = await StorageHelper.getToken();
+      final url = Uri.parse('$urlEdit/api/admin/orders/update-status');
+
+      print("👉 [ADMIN API] Updating Order #$orderId to $newStatus");
+
+      // SỬA LẠI: thay http.put bằng http.post
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'order_id': orderId, 'status': newStatus}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+    } catch (e) {
+      print("❌ Lỗi updateOrderStatus: $e");
+    }
+    return false;
+  }
+
+  // 3. Lấy thống kê Dashboard (Doanh thu, Số đơn)
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    try {
+      final token = await StorageHelper.getToken();
+      // Sửa URL cho đúng chuẩn Node.js (bỏ .php)
+      final url = Uri.parse('$urlEdit/api/admin/stats');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return data['data']; // Mong đợi: { revenue: 100000, total_orders: 5, ... }
+        }
+      }
+    } catch (e) {
+      print("❌ Lỗi getDashboardStats: $e");
+    }
+    return {'revenue': 0, 'total_orders': 0};
+  }
+
+  // 4. (MỚI) Xóa sản phẩm (Dành cho Admin quản lý món ăn)
+  Future<bool> deleteProduct(int productId) async {
+    try {
+      final token = await StorageHelper.getToken();
+      final url = Uri.parse(
+        '$urlEdit/api/products/$productId',
+      ); // API xóa theo ID
+
+      final response = await http.delete(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+    } catch (e) {
+      print("❌ Lỗi deleteProduct: $e");
+    }
+    return false;
+  }
+
+  double safeParseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      // Xử lý nếu có dấu chấm/thập phân
+      String cleaned = value.replaceAll(RegExp(r'[^0-9.-]'), '');
+      return double.tryParse(cleaned) ?? 0.0;
+    }
+    return 0.0;
   }
 }

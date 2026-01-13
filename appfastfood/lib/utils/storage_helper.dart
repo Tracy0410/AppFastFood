@@ -5,6 +5,7 @@ class StorageHelper {
   static const String _userid = 'user_id';
   static const String _fullname = 'fullname';
   static const String _avatar = 'Image';
+  static const String _role = 'role';
 
   static Future<void> init() async {
     await SharedPreferences.getInstance();
@@ -52,6 +53,16 @@ class StorageHelper {
   static Future<int?> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(_userid);
+  }
+
+  static Future<void> saveRole(String role) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_role, role);
+  }
+
+  static Future<String?> getRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_role);
   }
 
   static Future<void> ClearLoginToLogout() async {

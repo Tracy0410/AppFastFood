@@ -96,7 +96,6 @@ class Order{
     }
 }
 
-// --- 3. KIỂM TRA ĐƠN ĐỂ THANH TOÁN LẠI ---
 static async checkOrderForPayment(orderId, userId){
     const query = `
         SELECT total_amount
