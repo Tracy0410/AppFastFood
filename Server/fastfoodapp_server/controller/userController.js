@@ -792,22 +792,27 @@ export default class userController {
         }
     }
 
-    static async checkAvailablePromotions(req, res) {
-        try {
-            const { product_id,category_id } = req.body; 
-            
-            // items gửi lên từ Flutter: [{product_id: 1, category_id: 2}, ...]
-            const promotions = await userModel.getApplicablePromotions(product_id,category_id);
-            console.log(promotions);
-            res.status(200).json({
-                success: true,
-                data: promotions
-            });
-        } catch (error) {
-            console.error("Check Promo Error:", error);
-            res.status(500).json({ success: false, message: error.message });
-        }
+    
+    static async getAvailablePromotions(req, res) {
+    try {
+        // 1. Log để soi xem Flutter thực sự gửi gì lên
+        console.log("Dữ liệu thô từ Flutter gửi lên:", req.body);
+
+        // 2. Lấy dữ liệu (Phải khớp chính xác tên key 'productIds' và 'categoryIds' từ Flutter)
+        const { productIds, categoryIds } = req.body;
+
+        // 3. Truyền vào Model (Chỗ này bạn đang truyền bị sai nên nó mới báo undefined)
+        const rows = await userModel.getApplicablePromotions(productIds, categoryIds);
+
+        return res.status(200).json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error("Lỗi tại Controller:", error);
+        return res.status(500).json({ success: false, message: error.message });
     }
+}
 
     // --- Phần Admin ---
     // API: Lấy danh sách đơn hàng của user ()

@@ -13,10 +13,10 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.100.248:8001'; //máy thật
+  static const String baseUrl = 'http://127.0.0.1:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
-  static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
+  static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
 
   // Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -1149,42 +1149,70 @@ class ApiService {
       return 'Không kết nối được AI';
     }
   }
+  
+  static Future<List<Promotion>> checkAvailablePromotions(List<CartItem> cartItems) async {
+  try {
+    final List<int> pIds = cartItems.map<int>((e) => e.productId).toList();
+    final List<int> cIds = cartItems.map<int>((e) => e.categoryId).toList();
 
-  static Future<List<Promotion>> checkAvailablePromotions(
-    List<dynamic> cartItems,
-  ) async {
-    try {
-      // 1. Map dữ liệu cartItems sang format Server cần: [{product_id: 1, category_id: 2}, ...]
-      // Lưu ý: Sửa 'productId' / 'categoryId' cho đúng tên biến trong Model Cart của bạn
-      final itemsPayload = cartItems
-          .map((e) => {"product_id": e.productId, "category_id": e.categoryId})
-          .toList();
+    final response = await http.post(
+      Uri.parse('$urlEdit/api/promotions/check-available'),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "productIds": pIds,     // Viết đúng CamelCase
+        "categoryIds": cIds,    // Viết đúng CamelCase
+      }),
+    );
 
-      // 2. Gọi API
-      final response = await http.post(
-        Uri.parse('$urlEdit/api/promotions/check-available'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"items": itemsPayload}),
-      );
-
-      // 3. Xử lý kết quả
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-
-        if (jsonResponse['success'] == true) {
-          final List<dynamic> data = jsonResponse['data'];
-          // Convert List json -> List Voucher
-          return data.map((json) => Promotion.fromJson(json)).toList();
-        } else {
-          // Server trả về success: false
-          throw Exception(jsonResponse['message'] ?? "Lỗi không xác định");
-        }
-      } else {
-        throw Exception("Lỗi kết nối Server: ${response.statusCode}");
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      if (jsonResponse['success'] == true) {
+        final List<dynamic> data = jsonResponse['data'];
+        return data.map((json) => Promotion.fromJson(json)).toList();
       }
-    } catch (e) {
-      // Ném lỗi ra để bên UI bắt và hiển thị
-      throw Exception("Lỗi tải voucher: $e");
     }
+    return [];
+  } catch (e) {
+    print("Lỗi ApiService: $e");
+    return [];
   }
+}
+
+  // static Future<List<Promotion>> checkAvailablePromotions(
+  //   List<dynamic> cartItems,
+  // ) async {
+  //   try {
+  //     // 1. Map dữ liệu cartItems sang format Server cần: [{product_id: 1, category_id: 2}, ...]
+  //     // Lưu ý: Sửa 'productId' / 'categoryId' cho đúng tên biến trong Model Cart của bạn
+  //     final itemsPayload = cartItems
+  //         .map((e) => {"product_id": e.productId, "category_id": e.categoryId})
+  //         .toList();
+
+  //     // 2. Gọi API
+  //     final response = await http.post(
+  //       Uri.parse('$urlEdit/api/promotions/check-available'),
+  //       headers: {"Content-Type": "application/json"},
+  //       body: jsonEncode({"items": itemsPayload}),
+  //     );
+
+  //     // 3. Xử lý kết quả
+  //     if (response.statusCode == 200) {
+  //       final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+
+  //       if (jsonResponse['success'] == true) {
+  //         final List<dynamic> data = jsonResponse['data'];
+  //         // Convert List json -> List Voucher
+  //         return data.map((json) => Promotion.fromJson(json)).toList();
+  //       } else {
+  //         // Server trả về success: false
+  //         throw Exception(jsonResponse['message'] ?? "Lỗi không xác định");
+  //       }
+  //     } else {
+  //       throw Exception("Lỗi kết nối Server: ${response.statusCode}");
+  //     }
+  //   } catch (e) {
+  //     // Ném lỗi ra để bên UI bắt và hiển thị
+  //     throw Exception("Lỗi tải voucher: $e");
+  //   }
+  // }
 }

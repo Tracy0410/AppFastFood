@@ -480,16 +480,27 @@ export default class userModel {
         const sqlProductIds = safeProductIds.length > 0 ? safeProductIds : [-1];
         const sqlCategoryIds = safeCategoryIds.length > 0 ? safeCategoryIds : [-1];
 
-        const query = `SELECT DISTINCT p.promotion_id, p.name, p.discount_percent, p.start_date, p.end_date
-        FROM Promotions p
-        JOIN Promotion_Details pd ON p.promotion_id = pd.promotion_id
-        WHERE p.status = 1 
-        AND NOW() BETWEEN p.start_date AND p.end_date
-        AND (
-            pd.product_id IN (?) 
-            OR 
-            pd.category_id IN (?)
-        )`;
+        // const query = `SELECT DISTINCT p.promotion_id, p.name, p.discount_percent, p.start_date, p.end_date
+        // FROM Promotions p
+        // JOIN Promotion_Details pd ON p.promotion_id = pd.promotion_id
+        // WHERE p.status = 1 
+        // AND NOW() BETWEEN p.start_date AND p.end_date
+        // AND (
+        //     pd.product_id IN (?) 
+        //     OR 
+        //     pd.category_id IN (?)
+        // )`;
+        const query = `
+    SELECT DISTINCT p.* FROM Promotions p
+    LEFT JOIN Promotion_Details pd ON p.promotion_id = pd.promotion_id
+    WHERE p.status = 1 
+    AND NOW() BETWEEN p.start_date AND p.end_date
+    AND (
+        pd.product_id IN (?) 
+        OR pd.category_id IN (?)
+        OR pd.promotion_id IS NULL -- Trường hợp voucher áp dụng cho toàn bộ menu
+        OR NOT EXISTS (SELECT 1 FROM Promotion_Details WHERE promotion_id = p.promotion_id)
+    )`;
 
         try {
             const [rows] = await execute(query, [...sqlProductIds, ...sqlCategoryIds]);

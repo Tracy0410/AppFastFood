@@ -65,8 +65,7 @@ userRouter.get('/addresses', auth,userController.getAddressList);
 userRouter.post('/addresses/add', auth, userController.addAddress);
 userRouter.put('/addresses/setup', auth, userController.setDefaultAddress);
 userRouter.delete('/addresses/delete', auth, userController.deleteAddress);
-
-userRouter.post('/promotions/check-available', userController.checkAvailablePromotions);
+userRouter.post('/promotions/check-available', userController.getAvailablePromotions);
 userRouter.get('/promotions/active', userController.getPromotions);
 
 // Lấy danh sách đơn hàng

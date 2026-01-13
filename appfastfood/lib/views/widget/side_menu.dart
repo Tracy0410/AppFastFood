@@ -158,12 +158,8 @@ class _SideMenuState extends State<SideMenu> {
                 _buildMenuItem(Icons.person_outline, "Hồ sơ của tôi", () {
                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
                 }),
-                _buildMenuItem(
-                  Icons.location_on_outlined,
-                  "Theo Dõi Đơn Hàng",
-                  () {},
-                ),
-                _buildMenuItem(Icons.credit_card, "Phương Thức Thanh Toán", () {}),
+                
+               
                 _buildMenuItem(Icons.phone_in_talk_outlined, "Liên Hệ Với Cửa Hàng", () {
                   Navigator.push(
                     context,

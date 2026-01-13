@@ -200,9 +200,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
           onRefresh: _refreshFavData,
         );
       case 3:
-        return OrderListScreen(
-          onRefresh: _loadOrderData,
-        );
+        return const OrderListScreen();
       case 4:
         return const FaqScreen();
       default:
