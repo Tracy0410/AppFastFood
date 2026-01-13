@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:appfastfood/service/api_service.dart';
 import 'package:appfastfood/utils/app_colors.dart';
+import 'package:appfastfood/utils/storage_helper.dart';
 import 'package:appfastfood/views/screens/users/home_screen.dart';
 import 'package:appfastfood/views/screens/users/info/profile_screen.dart';
 import 'package:appfastfood/views/screens/users/setting/setting_screen.dart';
@@ -32,43 +34,43 @@ class _SideMenuState extends State<SideMenu> {
 
   //1. HÀM KIỂM TRA ĐĂNG NHẬP
   Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? token = prefs.getString('access_token');
-    final String? userJsonString = prefs.getString('user_data');
+    final token = await StorageHelper.getToken();
 
-    setState(() {
-      if (token != null && token.isNotEmpty && userJsonString != null) {
-        _isLoggedIn = true;
-        try {
-          Map<String, dynamic> userMap = jsonDecode(userJsonString);
-          User currentUser = User.fromJson(userMap);
-
-          _userName = currentUser.username;
-          _userEmail = currentUser.email;
-          _avatarUrl = currentUser.image; 
-        } catch (e) {
-          print("Lỗi parse user data: $e");
-        }
-      } else {
-        _isLoggedIn = false;
-        _userName = "Khách";
-        _userEmail = "Vui lòng đăng nhập";
-        _avatarUrl = null;
+    if (token != null && token.isNotEmpty) {
+      User? user = await ApiService().getProfile();
+      if (mounted) {
+        setState(() {
+          if (user != null) {
+            _isLoggedIn = true;
+            _userName = user.fullname;
+            _userEmail = user.email;
+            _avatarUrl = user.image;
+          } else {
+            _isLoggedIn = false; 
+            _userName = "Lỗi kết nối";
+            _userEmail = "Kiểm tra lại mạng";
+          }
+        });
       }
-    });
+    } else {
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = false;
+          _userName = "Khách";
+          _userEmail = "Vui lòng đăng nhập để tiếp tục";
+          _avatarUrl = null;
+        });
+      }
+    }
   }
 
   // --- 2. HÀM XỬ LÝ ĐĂNG XUẤT ---
   Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.clear();
+    await StorageHelper.ClearLoginToLogout();
 
     if (mounted) {
       setState(() {
         _isLoggedIn = false;
-        _userName = "Khách";
-        _avatarUrl = null;
       });
 
       Navigator.pop(context);
@@ -158,12 +160,6 @@ class _SideMenuState extends State<SideMenu> {
                 _buildMenuItem(Icons.person_outline, "Hồ sơ của tôi", () {
                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
                 }),
-                _buildMenuItem(
-                  Icons.location_on_outlined,
-                  "Theo Dõi Đơn Hàng",
-                  () {},
-                ),
-                _buildMenuItem(Icons.credit_card, "Phương Thức Thanh Toán", () {}),
                 _buildMenuItem(Icons.phone_in_talk_outlined, "Liên Hệ Với Cửa Hàng", () {
                   Navigator.push(
                     context,

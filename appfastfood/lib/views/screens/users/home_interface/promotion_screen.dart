@@ -132,7 +132,7 @@ class _PromotionScreenState extends State<PromotionScreen> {
       children: [
         // NỀN THẺ
         Container(
-          height: 95, // Tăng chiều cao để chứa dòng ngày tháng
+          constraints: const BoxConstraints(minHeight: 95),
           width: double.infinity,
           margin: const EdgeInsets.only(right: 15),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -165,16 +165,16 @@ class _PromotionScreenState extends State<PromotionScreen> {
                 
                 // Dòng hiển thị Ngày Bắt Đầu - Ngày Kết Thúc
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.white.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.calendar_month_outlined, size: 14, color: Colors.grey[700]),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 3),
                       Text(
                         "$startStr - $endStr",
                         style: TextStyle(

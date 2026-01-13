@@ -149,16 +149,19 @@ export default class userController {
             }
 
             // Tạo token
-            const token = userController.generateToken(user);
+            const token = jwt.sign(
+                { id: user.user_id, role: user.role },
+                process.env.JWT_SECRET || 'secretkey',
+                { expiresIn: '30d' }
+            );
 
-            // Loại bỏ password khỏi dữ liệu trả về client
-            const { password: _, ...userData } = user;
-
+            const { password: pass, ...userInfo } = user;
+            
             res.status(200).json({
                 success: true,
                 message: "Đăng nhập thành công",
                 token: token,
-                user: userData
+                user: userInfo
             });
 
         } catch (error) {
@@ -794,18 +797,21 @@ export default class userController {
 
     static async checkAvailablePromotions(req, res) {
         try {
-            const { product_id,category_id } = req.body; 
-            
-            // items gửi lên từ Flutter: [{product_id: 1, category_id: 2}, ...]
-            const promotions = await userModel.getApplicablePromotions(product_id,category_id);
-            console.log(promotions);
-            res.status(200).json({
+            console.log("Dữ liệu thô từ Flutter gửi lên:", req.body);
+
+            const { productIds, categoryIds } = req.body;
+            console.log("Input ProductIDs:", productIds);
+            console.log("Input CategoryIDs:", categoryIds);
+
+            const rows = await userModel.getApplicablePromotions(productIds, categoryIds);
+
+            return res.status(200).json({
                 success: true,
-                data: promotions
+                data: rows
             });
         } catch (error) {
-            console.error("Check Promo Error:", error);
-            res.status(500).json({ success: false, message: error.message });
+            console.error("Lỗi tại Controller:", error);
+            return res.status(500).json({ success: false, message: error.message });
         }
     }
 
@@ -957,6 +963,63 @@ export default class userController {
         } catch (error) {
             console.log("Lỗi lấy khuyến mãi:", error);
             res.status(500).send({ message: "Lỗi server khi lấy khuyến mãi." });
+        }
+    }
+
+    // static async getNotificationData(req, res) {
+    //     try {
+    //         const userId = req.user.userId; // Lấy từ token (middleware auth)
+
+    //         // 1. Lấy đơn hàng gần đây
+    //         const orders = await userModel.getRecentOrdersForNotify(userId);
+
+    //         // 2. Lấy khuyến mãi đang chạy (đã có hàm này trong file bạn gửi)
+    //         const promotions = await userModel.getActivePromotions();
+
+    //         // 3. Trả về chung 1 object
+    //         res.status(200).json({
+    //             success: true,
+    //             orders: orders,
+    //             promotions: promotions
+    //         });
+    //     } catch (error) {
+    //         console.error("Lỗi lấy data thông báo:", error);
+    //         res.status(500).json({ message: 'Lỗi server' });
+    //     }
+    // }
+    static async getNotificationData(req, res) {
+        try {
+            // SỬA Ở ĐÂY: Lấy trực tiếp req.userId (do auth.js gán)
+            let userId = req.userId;
+
+            // Kiểm tra nếu không lấy được userId
+            if (!userId) {
+                return res.status(401).json({ 
+                    success: false, 
+                    message: "Không tìm thấy userId từ Token" 
+                });
+            }
+
+            console.log("Đang lấy thông báo cho User ID:", userId);
+
+            // 1. Lấy đơn hàng gần đây
+            // Lưu ý: Nếu userId trong token là account_id nhưng bảng Orders dùng user_id, 
+            // bạn có thể cần thêm bước query chuyển đổi ở đây. 
+            // Hiện tại mình giả định token đã chứa đúng user_id.
+            const orders = await userModel.getRecentOrdersForNotify(userId);
+
+            // 2. Lấy khuyến mãi đang chạy
+            const promotions = await userModel.getActivePromotions();
+
+            // 3. Trả về chung 1 object
+            res.status(200).json({
+                success: true,
+                orders: orders,
+                promotions: promotions
+            });
+        } catch (error) {
+            console.error("Lỗi lấy data thông báo:", error);
+            res.status(500).json({ message: 'Lỗi server' });
         }
     }
 }

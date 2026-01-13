@@ -1,7 +1,6 @@
 import 'package:appfastfood/utils/storage_helper.dart';
 import 'package:appfastfood/views/screens/users/home_screen.dart';
-import 'package:appfastfood/views/screens/admin/admin_home_screen.dart';
-import 'package:appfastfood/views/screens/welcome_screen.dart';
+import 'package:appfastfood/views/screens/admin/admin_home_screen.dart'; // Import Admin screen
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -15,25 +14,29 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkRoleAndNavigate();
+    _checkLoginStatus();
   }
 
-  _checkRoleAndNavigate() async {
-    // Chạy song song
-    final result = await Future.wait([
-      Future.delayed(const Duration(seconds: 2)),                   
-      StorageHelper.getRole(),                    
-    ]);
+  Future<void> _checkLoginStatus() async {
+    await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
-    final String? role = result[1] as String?;
+    final String? token = await StorageHelper.getToken();
+    final String? role = await StorageHelper.getRole();
 
-    if (role == 'ADMIN') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const AdminHomePageScreen()),
-      );
+    if (token != null && token.isNotEmpty) {
+      if (role == 'ADMIN') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminHomePageScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePageScreen()),
+        );
+      }
     } else {
       Navigator.pushReplacement(
         context,

@@ -74,4 +74,6 @@ userRouter.get('/orders/my-orders', auth, userController.getMyOrders);
 
 // Lấy chi tiết đơn hàng
 userRouter.get('/orders/detail/:order_id', auth, userController.getOrderDetail);
+
+userRouter.get('/notifications/sync', auth, userController.getNotificationData);
 export default userRouter;

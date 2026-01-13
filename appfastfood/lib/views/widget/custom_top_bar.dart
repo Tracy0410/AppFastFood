@@ -6,12 +6,18 @@ class CustomTopBar extends StatelessWidget {
   final TextEditingController? searchController;
   final Function(String)? onSearchChanged;
   final VoidCallback? onFilterTap;
+
+  final VoidCallback? onNotificationTap;
+  final VoidCallback? onProfileTap;
+
   const CustomTopBar({
     super.key,
     this.isHome = false, // Mặc định là false
     this.searchController,
     this.onSearchChanged,
     this.onFilterTap,
+    this.onNotificationTap,
+    this.onProfileTap,
   });
 
   @override
@@ -83,12 +89,13 @@ class CustomTopBar extends StatelessWidget {
                   ),
 
                   const SizedBox(width: 8),
-                  _buildIcon(Icons.notifications_outlined),
+                  GestureDetector(
+                    onTap: onNotificationTap,
+                    child: _buildIcon(Icons.notifications_none),
+                  ),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () {
-                      Scaffold.of(context).openEndDrawer();
-                    },
+                    onTap: onProfileTap,
                     child: _buildIcon(Icons.person_outline),
                   ),
                 ],

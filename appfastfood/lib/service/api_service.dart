@@ -13,7 +13,7 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.100.248:8001'; //máy thật
+  static const String baseUrl = 'http://192.168.68.37:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
   static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
@@ -34,7 +34,7 @@ class ApiService {
       if (response.statusCode == 200 &&
           jsonResponse['success'] == true &&
           jsonResponse['token'] != null) {
-        await StorageHelper.saveToke(jsonResponse['token']);
+        await StorageHelper.saveToken(jsonResponse['token']);
         await StorageHelper.saveUserId(jsonResponse['user']['user_id']);
 
         return jsonResponse;
@@ -124,6 +124,7 @@ class ApiService {
   Future<User?> getProfile() async {
     try {
       final token = await StorageHelper.getToken();
+      if (token == null) return null;
 
       final url = Uri.parse('$urlEdit/api/profile');
       final response = await http.get(
@@ -138,8 +139,8 @@ class ApiService {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['user'] != null) {
           User user = User.fromJson(data['user']);
-          await StorageHelper.saveImage(user.image);
-          await StorageHelper.saveFullname(user.fullname);
+          // await StorageHelper.saveImage(user.image);
+          // await StorageHelper.saveFullname(user.fullname);
           return user;
         }
       }
@@ -1087,7 +1088,7 @@ class ApiService {
   Future<bool> submitReviews(List<ReviewModel> reviews) async {
     // Đường dẫn API (Sửa lại IP máy bạn nếu cần)
     final token = await StorageHelper.getToken();
-    final String url = '$baseUrl/api/reviews/add';
+    final String url = '$urlEdit/api/reviews/add';
 
     try {
       List<Map<String, dynamic>> reviewsJson = reviews
@@ -1150,41 +1151,54 @@ class ApiService {
     }
   }
 
-  static Future<List<Promotion>> checkAvailablePromotions(
-    List<dynamic> cartItems,
-  ) async {
+  static Future<List<Promotion>> checkAvailablePromotions(List<CartItem> cartItems) async {
     try {
-      // 1. Map dữ liệu cartItems sang format Server cần: [{product_id: 1, category_id: 2}, ...]
-      // Lưu ý: Sửa 'productId' / 'categoryId' cho đúng tên biến trong Model Cart của bạn
-      final itemsPayload = cartItems
-          .map((e) => {"product_id": e.productId, "category_id": e.categoryId})
-          .toList();
+      final List<int> pIds = cartItems.map<int>((e) => e.productId).toList();
+      final List<int> cIds = cartItems.map<int>((e) => e.categoryId).toList();
 
-      // 2. Gọi API
       final response = await http.post(
         Uri.parse('$urlEdit/api/promotions/check-available'),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"items": itemsPayload}),
+        body: jsonEncode({
+          "productIds": pIds,     // Viết đúng CamelCase
+          "categoryIds": cIds,    // Viết đúng CamelCase
+        }),
       );
 
-      // 3. Xử lý kết quả
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-
+        final jsonResponse = jsonDecode(response.body);
         if (jsonResponse['success'] == true) {
           final List<dynamic> data = jsonResponse['data'];
-          // Convert List json -> List Voucher
           return data.map((json) => Promotion.fromJson(json)).toList();
-        } else {
-          // Server trả về success: false
-          throw Exception(jsonResponse['message'] ?? "Lỗi không xác định");
         }
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi ApiService: $e");
+      return [];
+    }
+  }
+
+  // Lấy dữ liệu cho trang thông báo
+  Future<Map<String, dynamic>> getNotificationSync() async {
+    try {
+      final token = await StorageHelper.getToken();
+      final response = await http.get(
+        Uri.parse('$urlEdit/api/notifications/sync'),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
       } else {
-        throw Exception("Lỗi kết nối Server: ${response.statusCode}");
+        return {};
       }
     } catch (e) {
-      // Ném lỗi ra để bên UI bắt và hiển thị
-      throw Exception("Lỗi tải voucher: $e");
+      print('Error syncing notifications: $e');
+      return {};
     }
   }
 }

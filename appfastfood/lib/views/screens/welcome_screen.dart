@@ -9,15 +9,6 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFE95322),
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: Icon(Icons.arrow_back_ios_new),
-        ),
-        backgroundColor: const Color(0xFFE95322),
-      ),
       body: SafeArea(
         child: SizedBox(
           width: double.infinity,

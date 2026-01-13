@@ -467,28 +467,27 @@ export default class userModel {
             items: calculatedItems
         };
     }
+    
     static async getApplicablePromotions(productIds, categoryIds) {
-        // Console log để debug xem nhận được gì
         console.log("Input ProductIDs:", productIds);
         console.log("Input CategoryIDs:", categoryIds);
 
-        // Xử lý an toàn: Nếu null/undefined thì gán mảng rỗng
         const safeProductIds = productIds || [];
         const safeCategoryIds = categoryIds || [];
 
-        // Trick: Nếu mảng rỗng thì gán [-1] để SQL không lỗi cú pháp "IN ()"
         const sqlProductIds = safeProductIds.length > 0 ? safeProductIds : [-1];
         const sqlCategoryIds = safeCategoryIds.length > 0 ? safeCategoryIds : [-1];
 
-        const query = `SELECT DISTINCT p.promotion_id, p.name, p.discount_percent, p.start_date, p.end_date
-        FROM Promotions p
-        JOIN Promotion_Details pd ON p.promotion_id = pd.promotion_id
-        WHERE p.status = 1 
-        AND NOW() BETWEEN p.start_date AND p.end_date
-        AND (
-            pd.product_id IN (?) 
-            OR 
-            pd.category_id IN (?)
+        const query = `
+            SELECT DISTINCT p.* FROM Promotions p
+            LEFT JOIN Promotion_Details pd ON p.promotion_id = pd.promotion_id
+            WHERE p.status = 1 
+            AND NOW() BETWEEN p.start_date AND p.end_date
+            AND (
+                pd.product_id IN (?) 
+                OR pd.category_id IN (?)
+                OR pd.promotion_id IS NULL -- Trường hợp voucher áp dụng cho toàn bộ menu
+                OR NOT EXISTS (SELECT 1 FROM Promotion_Details WHERE promotion_id = p.promotion_id)
         )`;
 
         try {
@@ -499,7 +498,6 @@ export default class userModel {
             return [];
         }
     }
-
 
     /**
      * API 1: XEM TRƯỚC ĐƠN HÀNG (Preview)
@@ -738,13 +736,9 @@ export default class userModel {
             SELECT 
                 promotion_id,
                 name,
-                description,
                 discount_percent,
-                discount_amount,
-                code,
                 start_date,
-                end_date,
-                image_url
+                end_date
             FROM Promotions
             WHERE status = 1              -- Chỉ lấy khuyến mãi đang BẬT (TinyInt)
             AND start_date <= NOW()       -- Đã bắt đầu
@@ -757,6 +751,28 @@ export default class userModel {
             return rows;
         } catch (error) {
             console.error("Error getting promotions:", error);
+            throw error;
+        }
+    }
+
+    static async getRecentOrdersForNotify(userId) {
+        // Lấy 10 đơn hàng mới nhất để tạo thông báo
+        const sql = `
+            SELECT 
+                o.order_id, 
+                o.order_status, 
+                o.total_amount, 
+                o.created_at
+            FROM Orders o
+            WHERE o.user_id = ?
+            ORDER BY o.created_at DESC
+            LIMIT 10
+        `;
+        try {
+            const [rows] = await execute(sql, [userId]);
+            return rows;
+        } catch (error) {
+            console.error("Error getting recent orders:", error);
             throw error;
         }
     }

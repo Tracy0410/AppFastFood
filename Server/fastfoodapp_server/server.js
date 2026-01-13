@@ -24,7 +24,7 @@ app.use('/api', reviewRouter);
 app.use('/api', orderRouter);
 app.use('/api', productRouter);
 app.use('/api', userRouter);
-app.use('/api',adminRouter);
+app.use('/api', adminRouter);
 // ✅ ROUTE AI
 app.use('/api/ai', aiRouter);
 console.log("👉 GEMINI KEY RAW =", JSON.stringify(process.env.OPENAI_API_KEY));

@@ -12,7 +12,7 @@ class StorageHelper {
     await SharedPreferences.getInstance();
   }
 
-  static Future<void> saveToke(String token) async {
+  static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_token, token);
   }
@@ -67,10 +67,6 @@ class StorageHelper {
 
   static Future<void> ClearLoginToLogout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_token);
-    await prefs.remove(_fullname);
-    await prefs.remove(_userid);
-    await prefs.remove(_avatar);
-    await prefs.remove(_role);
+    await prefs.clear();
   }
 }

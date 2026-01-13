@@ -7,7 +7,7 @@ import '../../../service/api_service.dart';
 import '../../../models/checkout.dart';
 import 'package:appfastfood/models/address.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:appfastfood/views/screens/users/info/promotion_checkout_screen.dart';
+import 'package:appfastfood/views/screens/users/promotion_checkout_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final List<OrderItemReq> inputItems;
@@ -51,33 +51,47 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   // --- 2. HÀM CHỌN VOUCHER (MỚI THÊM) ---
   void _onSelectVoucher() async {
+    // 1. Chuyển đổi dữ liệu sang CartItem (Bạn đã làm đúng chỗ này)
     List<CartItem> tempCartItems = widget.inputItems.map((item) {
       return CartItem(
-        cartId: 0, // Không quan trọng
+        cartId: 0, 
         productId: item.productId,
-        categoryId: item.categoryId, // QUAN TRỌNG: Phải có trường này
-        name: "", // Màn hình check voucher không cần tên, chỉ cần ID để check
+        categoryId: item.categoryId, 
+        name: "", 
         price: 0,
         imageUrl: "",
         quantity: item.quantity,
         note: item.note,
       );
     }).toList();
-    // Mở màn hình PromotionScreen, truyền danh sách món ăn qua để lọc
+
+    // 2. Mở màn hình chọn Voucher
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PromotionCheckoutScreen(
-          cartItems: tempCartItems, // Truyền items qua đây
-        ),
+        // SỬA TẠI ĐÂY: Dùng tempCartItems thay vì items
+        builder: (context) => PromotionCheckoutScreen(cartItems: tempCartItems), 
       ),
     );
 
-    // Nếu user chọn 1 voucher và quay lại
     if (result != null && result is Promotion) {
       setState(() {
-        _selectedPromotion = result;
+        _selectedPromotion = result; 
       });
+
+      // Gọi lại API tính tiền để cập nhật giá giảm
+      _fetchPreview();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Đã áp dụng mã: ${result.name}")),
+      );
+    }
+  
+
+if (result != null && result is Promotion) {
+  setState(() {
+    _selectedPromotion = result; // Lưu voucher đã chọn
+  });
 
       // Gọi lại API tính tiền để cập nhật giá giảm
       _fetchPreview();

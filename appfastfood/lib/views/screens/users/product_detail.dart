@@ -366,7 +366,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (_isLoadingReview) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (displayProduct.review.isEmpty) {
+    if (displayProduct.reviews.isEmpty) {
       return Center(
         child: Column(
           children: const [
@@ -380,9 +380,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       padding: EdgeInsets.zero,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: displayProduct.review.length,
+      itemCount: displayProduct.reviews.length,
       itemBuilder: (context, index) {
-        final review = displayProduct.review[index];
+        final review = displayProduct.reviews[index];
         return Container(
           margin: const EdgeInsets.only(bottom: 15),
           padding: const EdgeInsets.all(12),
