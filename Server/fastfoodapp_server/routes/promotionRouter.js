@@ -6,5 +6,6 @@ const router = express.Router();
 
 
 router.get('/', PromotionController.getPromotions);
+router.get('/:id/products', PromotionController.getPromotionProducts);
 
 export default router;

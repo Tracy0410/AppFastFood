@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class NotificationSide extends StatefulWidget {
-  const NotificationSide({Key? key}) : super(key: key);
+  final Function(int promotionId, String code)? onUsePromo;
+
+  const NotificationSide({Key? key, this.onUsePromo}) : super(key: key);
 
   @override
   State<NotificationSide> createState() => _NotificationSideState();
 }
 
 class _NotificationSideState extends State<NotificationSide> {
-  // List chứa dữ liệu hỗn hợp (cả Order và Promotion)
   List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = true;
   final ApiService _apiService = ApiService();
@@ -21,7 +22,6 @@ class _NotificationSideState extends State<NotificationSide> {
     _fetchNotifications();
   }
 
-  // Hàm lấy và chuẩn hóa dữ liệu
   Future<void> _fetchNotifications() async {
     final data = await _apiService.getNotificationSync();
     
@@ -29,10 +29,8 @@ class _NotificationSideState extends State<NotificationSide> {
 
     List<Map<String, dynamic>> tempList = [];
 
-    // 1. Xử lý Đơn hàng -> Biến thành thông báo
     if (data['orders'] != null) {
       for (var order in data['orders']) {
-        // Tạo nội dung thông báo dựa trên trạng thái
         String title = "Đơn hàng #${order['order_id']}";
         String statusMsg = "";
         Color statusColor = Colors.blue;
@@ -42,7 +40,7 @@ class _NotificationSideState extends State<NotificationSide> {
             statusMsg = "Đơn hàng đã được đặt thành công. Chờ xác nhận.";
             statusColor = Colors.orange;
             break;
-          case 'COOKING': // Ví dụ trạng thái chế biến
+          case 'COOKING':
             statusMsg = "Đơn hàng đang được chế biến. Vui lòng đợi nhé!";
             statusColor = Colors.blue;
             break;
@@ -70,12 +68,11 @@ class _NotificationSideState extends State<NotificationSide> {
           'detail': order['items_summary'] ?? "Chi tiết đơn hàng...",
           'time': order['created_at'],
           'color': statusColor,
-          'isNew': true, // Giả lập mới
+          'isNew': true,
         });
       }
     }
 
-    // 2. Xử lý Khuyến mãi -> Biến thành thông báo
     if (data['promotions'] != null) {
       for (var promo in data['promotions']) {
         tempList.add({
@@ -83,6 +80,8 @@ class _NotificationSideState extends State<NotificationSide> {
           'id': promo['promotion_id'],
           'title': "HOT: ${promo['name']}",
           'message': "Nhập mã: ${promo['code']} để giảm ${promo['discount_percent']}%",
+          'code': promo['code'],
+          'raw_name': promo['name'],
           'detail': promo['description'] ?? "Áp dụng cho các món trong danh mục...",
           'time': promo['start_date'],
           'color': Colors.redAccent,
@@ -90,9 +89,6 @@ class _NotificationSideState extends State<NotificationSide> {
         });
       }
     }
-
-    // Sắp xếp theo thời gian mới nhất (Giả định trường time là String ISO hoặc DateTime)
-    // Ở đây demo hiển thị Promotion lên đầu hoặc xen kẽ tùy logic
     
     setState(() {
       _notifications = tempList;
@@ -100,7 +96,6 @@ class _NotificationSideState extends State<NotificationSide> {
     });
   }
 
-  // Hàm xóa thông báo (Xóa khỏi list hiển thị hiện tại)
   void _removeNotification(int index) {
     setState(() {
       _notifications.removeAt(index);
@@ -110,10 +105,9 @@ class _NotificationSideState extends State<NotificationSide> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      width: MediaQuery.of(context).size.width * 0.85, // Rộng 85% màn hình
+      width: MediaQuery.of(context).size.width * 0.85,
       child: Column(
         children: [
-          // Header
           Container(
             padding: const EdgeInsets.only(top: 50, left: 20, bottom: 20),
             color: Colors.redAccent,
@@ -128,7 +122,6 @@ class _NotificationSideState extends State<NotificationSide> {
             ),
           ),
           
-          // List Body
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -149,10 +142,7 @@ class _NotificationSideState extends State<NotificationSide> {
   }
 
   Widget _buildNotificationCard(Map<String, dynamic> item, int index) {
-    // Icon tùy loại
-    IconData iconData = item['type'] == 'ORDER' 
-        ? Icons.fastfood 
-        : Icons.local_offer;
+    IconData iconData = item['type'] == 'ORDER' ? Icons.fastfood : Icons.local_offer;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 15),
@@ -160,34 +150,22 @@ class _NotificationSideState extends State<NotificationSide> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Stack(
         children: [
-          // Dùng ExpansionTile để có thể xổ xuống xem chi tiết
           ExpansionTile(
             leading: CircleAvatar(
               backgroundColor: item['color'].withOpacity(0.1),
               child: Icon(iconData, color: item['color']),
             ),
-            title: Text(
-              item['title'],
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            ),
+            title: Text(item['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 5),
-                Text(
-                  item['message'],
-                  style: TextStyle(color: Colors.grey[700], fontSize: 13),
-                ),
+                Text(item['message'], style: TextStyle(color: Colors.grey[700], fontSize: 13)),
                 const SizedBox(height: 5),
-                // Hiển thị thời gian đơn giản
-                Text(
-                  _formatDate(item['time']),
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
+                Text(_formatDate(item['time']), style: const TextStyle(fontSize: 11, color: Colors.grey)),
               ],
             ),
             children: [
-              // Phần nội dung xổ xuống
               Container(
                 padding: const EdgeInsets.all(15),
                 width: double.infinity,
@@ -195,18 +173,21 @@ class _NotificationSideState extends State<NotificationSide> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Chi tiết:",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    const Text("Chi tiết:", style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 5),
                     Text(item['detail']),
+                    
                     if (item['type'] == 'PROMOTION')
                       Padding(
                         padding: const EdgeInsets.only(top: 10),
                         child: ElevatedButton(
                           onPressed: () {
-                            // Logic copy code hoặc áp dụng
+                            if (widget.onUsePromo != null) {
+                                widget.onUsePromo!(
+                                  item['id'] ?? 0, 
+                                  item['code'] ?? ''
+                                );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
@@ -220,8 +201,6 @@ class _NotificationSideState extends State<NotificationSide> {
               ),
             ],
           ),
-
-          // Nút X để xóa thông báo (Positioned ở góc phải trên)
           Positioned(
             right: 0,
             top: 0,

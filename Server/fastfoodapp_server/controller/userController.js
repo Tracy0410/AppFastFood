@@ -966,33 +966,10 @@ export default class userController {
         }
     }
 
-    // static async getNotificationData(req, res) {
-    //     try {
-    //         const userId = req.user.userId; // Lấy từ token (middleware auth)
-
-    //         // 1. Lấy đơn hàng gần đây
-    //         const orders = await userModel.getRecentOrdersForNotify(userId);
-
-    //         // 2. Lấy khuyến mãi đang chạy (đã có hàm này trong file bạn gửi)
-    //         const promotions = await userModel.getActivePromotions();
-
-    //         // 3. Trả về chung 1 object
-    //         res.status(200).json({
-    //             success: true,
-    //             orders: orders,
-    //             promotions: promotions
-    //         });
-    //     } catch (error) {
-    //         console.error("Lỗi lấy data thông báo:", error);
-    //         res.status(500).json({ message: 'Lỗi server' });
-    //     }
-    // }
     static async getNotificationData(req, res) {
         try {
-            // SỬA Ở ĐÂY: Lấy trực tiếp req.userId (do auth.js gán)
             let userId = req.userId;
 
-            // Kiểm tra nếu không lấy được userId
             if (!userId) {
                 return res.status(401).json({ 
                     success: false, 
@@ -1000,18 +977,10 @@ export default class userController {
                 });
             }
 
-            console.log("Đang lấy thông báo cho User ID:", userId);
-
-            // 1. Lấy đơn hàng gần đây
-            // Lưu ý: Nếu userId trong token là account_id nhưng bảng Orders dùng user_id, 
-            // bạn có thể cần thêm bước query chuyển đổi ở đây. 
-            // Hiện tại mình giả định token đã chứa đúng user_id.
             const orders = await userModel.getRecentOrdersForNotify(userId);
 
-            // 2. Lấy khuyến mãi đang chạy
             const promotions = await userModel.getActivePromotions();
 
-            // 3. Trả về chung 1 object
             res.status(200).json({
                 success: true,
                 orders: orders,

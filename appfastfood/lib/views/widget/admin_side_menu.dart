@@ -1,6 +1,7 @@
+import 'package:appfastfood/utils/storage_helper.dart';
+import 'package:appfastfood/views/screens/users/home_screen.dart';
 import 'package:flutter/material.dart';
-import '../../views/screens/login_screen.dart';
-import '../../views/screens/admin/admin_order_screen.dart'; // Đảm bảo đúng đường dẫn tới file AdminOrderScreen
+import '../../views/screens/admin/admin_order_screen.dart';
 import '../../views/screens/admin/admin_product_screen.dart';
 import '../../views/screens/admin/admin_customer_screen.dart';
 
@@ -18,7 +19,7 @@ class AdminSideMenu extends StatelessWidget {
           content: const Text("Bạn có chắc chắn muốn đăng xuất khỏi hệ thống không?"),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context), // Đóng dialog
+              onPressed: () => Navigator.pop(context),
               child: const Text("Hủy", style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
@@ -26,13 +27,18 @@ class AdminSideMenu extends StatelessWidget {
                 backgroundColor: const Color(0xFFE95322),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              onPressed: () {
-                // Thoát hoàn toàn và về màn hình Login
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
-                );
+              onPressed: () async {
+                await StorageHelper.ClearLoginToLogout();
+
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomePageScreen()),
+                    (route) => false,
+                  );
+                }
               },
               child: const Text("Đăng xuất", style: TextStyle(color: Colors.white)),
             ),

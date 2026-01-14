@@ -71,6 +71,9 @@ class _SideMenuState extends State<SideMenu> {
     if (mounted) {
       setState(() {
         _isLoggedIn = false;
+        _userName = "Khách";
+        _userEmail = "Vui lòng đăng nhập để tiếp tục";
+        _avatarUrl = null;
       });
 
       Navigator.pop(context);
@@ -79,6 +82,14 @@ class _SideMenuState extends State<SideMenu> {
         context,
         MaterialPageRoute(builder: (context) => const HomePageScreen()),
         (route) => false,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Đăng xuất thành công"),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
       );
     }
   }

@@ -32,10 +32,10 @@ console.log("👉 GEMINI KEY RAW =", JSON.stringify(process.env.OPENAI_API_KEY))
 
 // Ensure promotions route is registered explicitly (some environments may need direct handler)
 app.use('/api/promotions', promotionRouter);
-app.get('/api/promotions', (req, res, next) => {
-    console.log('Direct /api/promotions hit');
-    return PromotionController.getPromotions(req, res).catch(next);
-});
+// app.get('/api/promotions', (req, res, next) => {
+//     console.log('Direct /api/promotions hit');
+//     return PromotionController.getPromotions(req, res).catch(next);
+// });
 app.use('/uploads', express.static('uploads'));
 // Default route
 app.get('/', (req, res) => {

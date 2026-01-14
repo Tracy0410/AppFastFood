@@ -40,8 +40,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
   Timer? _notificationTimer;
 
-  List<CategoryItem> _filterCategories =
-      []; // <--- MỚI THÊM (Biến chứa danh mục cho bộ lọc)
+  List<CategoryItem> _filterCategories = [];
 
   @override
   void initState() {
@@ -64,16 +63,13 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
   @override
   void dispose() {
-    // Hủy Timer khi thoát màn hình để tránh lỗi
     _notificationTimer?.cancel();
     super.dispose();
   }
 
   void _startBackgroundCheck() {
-    // Gọi ngay lần đầu tiên
     _checkOrderUpdates();
 
-    // Lặp lại mỗi 30 giây
     _notificationTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       _checkOrderUpdates();
     });
@@ -93,7 +89,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
         _categories = ["All", ...categories];
         _selectedCategory = "All";
 
-        // --- MỚI THÊM (Lấy dữ liệu cho bảng lọc) ---
         final uniqueCats = <int, String>{};
         for (var p in products) {
           uniqueCats[p.categoryId] = p.categoryName;
@@ -101,13 +96,11 @@ class _HomePageScreenState extends State<HomePageScreen> {
         _filterCategories = uniqueCats.entries
             .map((e) => CategoryItem(id: e.key.toString(), name: e.value))
             .toList();
-        // ------------------------------------------
       });
     }
     return products;
   }
 
-  // --- MỚI THÊM (Hàm hiển thị menu lọc) ---
   void _showFilterMenu() {
     showModalBottomSheet(
       context: context,
@@ -120,7 +113,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
           ),
           child: FilterModal(
             categories: _filterCategories,
-            // Callback bây giờ nhận về maxPrice (double) thay vì RangeValues
             onApply: (catId, rating, maxPrice) {
               _applyAdvancedFilter(catId, rating, maxPrice);
             },
@@ -129,9 +121,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
       },
     );
   }
-  // ----------------------------------------
 
-  // --- MỚI THÊM (Hàm gọi API lọc) ---
   Future<void> _applyAdvancedFilter(
     String categoryId,
     int rating,
@@ -142,8 +132,8 @@ class _HomePageScreenState extends State<HomePageScreen> {
       final result = await _apiService.filterProducts(
         categoryId: categoryId,
         rating: rating,
-        minPrice: 0, // <--- LUÔN SET MIN LÀ 0
-        maxPrice: maxPrice, // <--- SET MAX THEO THANH KÉO
+        minPrice: 0,
+        maxPrice: maxPrice,
       );
       setState(() {
         _homeDisplayProducts = result;
@@ -153,7 +143,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
       print("Lỗi Filter: $e");
     }
   }
-  // ----------------------------------
 
   // Hàm refresh cho Home
   Future<List<Product>> _refreshHome() async {
@@ -207,18 +196,17 @@ class _HomePageScreenState extends State<HomePageScreen> {
   // HÀM MỞ THÔNG BÁO
   void _openNotificationDrawer() {
     setState(() {
-      _currentEndDrawer = const NotificationSide(); // Đổi nội dung thành Thông báo
+      _currentEndDrawer = NotificationSide(
+        onUsePromo: _handleApplyPromo,
+      ); 
     });
-    // Đợi 1 frame để UI cập nhật rồi mới mở (cho chắc chắn)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scaffoldKey.currentState?.openEndDrawer();
-    });
+    _scaffoldKey.currentState?.openEndDrawer();
   }
 
   // HÀM MỞ PROFILE
   void _openProfileDrawer() {
     setState(() {
-      _currentEndDrawer = const SideMenu(); // Đổi nội dung thành Menu Profile cũ
+      _currentEndDrawer = const SideMenu();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scaffoldKey.currentState?.openEndDrawer();
@@ -339,6 +327,43 @@ class _HomePageScreenState extends State<HomePageScreen> {
       case 'COMPLETED': return 'Đơn hàng đã hoàn tất. Chúc ngon miệng!';
       case 'CANCELLED': return 'Đơn hàng đã bị hủy.';
       default: return 'Trạng thái mới: $status';
+    }
+  }
+
+  // Hàm xử lý khi bấm "Dùng ngay"
+  void _handleApplyPromo(int promotionId, String code) async {
+    Navigator.of(context).pop();
+
+    setState(() {
+      _currentBottomIndex = 0; 
+      _search.text = code; 
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Đang lọc sản phẩm khuyến mãi..."),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    try {
+       List<Product> results = await _apiService.getProductsByPromotion(promotionId);
+
+       if (mounted) {
+         setState(() {
+           _homeDisplayProducts = results;
+           
+           _productsFuture = Future.value(results);
+         });
+         
+         if (results.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Không có sản phẩm nào áp dụng cho khuyến mãi này")),
+            );
+         }
+       }
+    } catch (e) {
+       print("Lỗi apply promo: $e");
     }
   }
 }

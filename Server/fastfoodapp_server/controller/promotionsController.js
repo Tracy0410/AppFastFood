@@ -18,7 +18,32 @@ class PromotionController {
         }
     }
     
-        
+    static async getPromotionProducts(req, res) {
+        try {
+            const { id } = req.params;
+
+            if (!id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Thiếu ID khuyến mãi'
+                });
+            }
+
+            const products = await PromotionModel.getProductsByPromotionId(id);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Lấy sản phẩm khuyến mãi thành công',
+                count: products.length,
+                data: products
+            });
+        } catch (error) {            
+            return res.status(500).json({
+                success: false,
+                message: 'Lỗi server: ' + error.message
+            });
+        }
+    }
 }
 
 export default PromotionController;

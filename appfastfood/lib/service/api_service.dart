@@ -1201,4 +1201,29 @@ class ApiService {
       return {};
     }
   }
+
+  // Lấy danh sách sản phẩm theo ID khuyến mãi
+  Future<List<Product>> getProductsByPromotion(int promotionId) async {
+    try {
+      // Gọi vào endpoint mới mà bạn vừa viết ở Backend
+      final url = Uri.parse('$urlEdit/api/promotions/$promotionId/products');
+      
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonRes = jsonDecode(response.body);
+        
+        if (jsonRes['success'] == true) {
+          List<dynamic> data = jsonRes['data'];
+          return data.map((json) => Product.fromJson(json)).toList();
+        }
+      } else {
+        print("Lỗi server: ${response.statusCode}");
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi khi lấy sản phẩm khuyến mãi: $e");
+      return [];
+    }
+  }
 }

@@ -67,6 +67,12 @@ class StorageHelper {
 
   static Future<void> ClearLoginToLogout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await Future.wait([
+      prefs.remove(_token),
+      prefs.remove(_userid),
+      prefs.remove(_fullname),
+      prefs.remove(_avatar),
+      prefs.remove(_role),
+    ]);
   }
 }

@@ -160,7 +160,8 @@ CREATE TABLE Order_Details (
     FOREIGN KEY (product_id) REFERENCES Products(product_id),
     FOREIGN KEY (promotion_detail_id) REFERENCES Promotion_Details(promotion_detail_id) -- Link tới bảng mới
 );
-
+-- AI chatBox
+CREATE TABLE AI_Chat_History ( chat_id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, question TEXT NOT NULL, answer TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, CONSTRAINT fk_ai_user FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE );
 -- =============================================
 -- INSERT DỮ LIỆU MẪU
 -- =============================================
@@ -178,37 +179,59 @@ INSERT INTO Categories (name, status) VALUES
 ('Gà Rán', 1),
 ('Đồ Ăn Nhẹ & Salad', 1);
 
-INSERT INTO Products (category_id, name, description, price, image_url, status) VALUES
-(1, 'Burger Bò phô mai', 'Bò nướng lửa hồng kẹp phô mai Cheddar tan chảy và rau tươi.', 55000, 'img/burger_cheese.jpg', 1),
-(1, 'Burger Gà giòn', 'Gà phi lê tẩm bột chiên giòn rụm với sốt mayonnaise.', 45000, 'img/burger_chicken.jpg', 1),
-(1, 'Burger Tôm', 'Nhân tôm tươi xay nhuyễn, chiên xù giòn tan.', 59000, 'img/burger_shrimp.jpg', 1),
-(1, 'Burger Cá', 'Cá tuyết phi lê chiên giòn cùng sốt Tartar đặc biệt.', 49000, 'img/burger_fish.jpg', 1),
-(1, 'Hotdog', 'Bánh mì mềm kẹp xúc xích nướng và mù tạt vàng.', 35000, 'img/hotdog.jpg', 1),
-(2, 'Pizza Pepperoni', 'Đế bánh mỏng giòn, phủ đầy xúc xích Ý và phô mai.', 129000, 'img/pizza_pepperoni.jpg', 1),
-(2, 'Pizza Hải sản', 'Tôm, mực, thanh cua và ớt chuông trên nền sốt cà chua.', 149000, 'img/pizza_seafood.jpg', 1),
-(2, 'Pizza Phô mai', 'Sự kết hợp của 4 loại phô mai béo ngậy.', 119000, 'img/pizza_cheese.jpg', 1),
-(2, 'Mì Ý sốt bò bằm', 'Spaghetti với sốt Bolognese thịt bò bằm truyền thống.', 69000, 'img/spaghetti_bolo.jpg', 1),
-(2, 'Mì Ý sốt cay', 'Mì Ý xào hải sản với sốt ớt cay nồng.', 75000, 'img/spaghetti_spicy.jpg', 1),
-(2, 'Mì Ý sốt phô mai', 'Mì Ý sốt kem nấm và phô mai béo ngậy (Carbonara).', 72000, 'img/spaghetti_cheese.jpg', 1),
-(3, 'Cơm gà rán', 'Cơm trắng dẻo ăn kèm đùi gà chiên giòn và dưa leo.', 45000, 'img/rice_fried_chicken.jpg', 1),
-(3, 'Cơm gà viên', 'Cơm sốt teriyaki ăn kèm gà viên chiên giòn.', 42000, 'img/rice_popcorn.jpg', 1),
-(3, 'Cơm hải sản', 'Cơm chiên dương châu với tôm và mực.', 55000, 'img/rice_seafood.jpg', 1),
-(4, 'Gà rán truyền thống', 'Lớp vỏ giòn tan, thịt mềm ngọt vị nguyên bản (1 miếng).', 36000, 'img/chicken_original.jpg', 1),
-(4, 'Gà sốt cay', 'Gà rán phủ sốt ớt cay nồng thách thức vị giác (1 miếng).', 38000, 'img/chicken_spicy.jpg', 1),
-(4, 'Gà sốt mật ong', 'Gà rán kiểu Hàn Quốc sốt mật ong ngọt ngào (1 miếng).', 38000, 'img/chicken_honey.jpg', 1),
-(4, 'Gà viên (Popcorn)', 'Thịt ức gà cắt nhỏ chiên giòn, vui miệng dễ ăn.', 45000, 'img/chicken_popcorn.jpg', 1),
-(4, 'Cánh gà nướng BBQ', 'Cánh gà nướng thấm đẫm sốt BBQ đậm đà.', 55000, 'img/chicken_wings_bbq.jpg', 1),
-(4, 'Gà Nugget', 'Miếng gà xay chiên giòn (6 miếng).', 39000, 'img/chicken_nugget.jpg', 1),
-(5, 'Khoai tây chiên', 'Khoai tây nhập khẩu chiên vàng giòn rụm.', 29000, 'img/french_fries.jpg', 1),
-(5, 'Khoai tây lắc phô mai', 'Khoai tây chiên lắc bột phô mai thơm lừng.', 35000, 'img/fries_cheese.jpg', 1),
-(5, 'Cá chiên giòn', 'Thanh cá tẩm bột chiên xù ăn kèm sốt.', 39000, 'img/fish_stick.jpg', 1),
-(5, 'Phô mai que', 'Phô mai Mozzarella kéo sợi bọc bột chiên xù.', 42000, 'img/cheese_stick.jpg', 1),
-(5, 'Mực vòng chiên giòn', 'Mực tươi cắt khoanh tẩm bột chiên giòn.', 59000, 'img/calamari.jpg', 1),
-(5, 'Tôm chiên giòn', 'Tôm nguyên con tẩm bột chiên xù.', 65000, 'img/shrimp_fried.jpg', 1),
-(5, 'Xúc xích nướng', 'Xúc xích đức nướng thơm lừng.', 25000, 'img/sausage.jpg', 1),
-(5, 'Salad trộn', 'Bắp cải trộn sốt mayonnaise chua ngọt (Coleslaw).', 19000, 'img/coleslaw.jpg', 1),
-(5, 'Khoai tây nghiền', 'Khoai tây nghiền mịn màng rưới sốt nâu đậm đà.', 22000, 'img/mashed_potato.jpg', 1);
-///Chạy ở trên rồi thì chạy ở dưới này
+
+INSERT INTO `products` (`product_id`, `category_id`, `name`, `description`, `price`, `image_url`, `status`, `average_rating`, `review_count`) VALUES
+(1, 1, 'Burger Bò Wagyu', 'Thịt bò Wagyu nướng medium rưới sốt nấm Truffle.', 150000.00, 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd', 1, 0.0, 0),
+(2, 1, 'Burger Gà giòn sốt phô mai', 'Gà phi lê chiên xù và lớp phô mai béo ngậy.', 65000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ8fkRGBV-fwQ5ExmZ3ebnM7Kah8xFBbmqmYg&s', 1, 0.0, 0),
+(3, 1, 'Double Bacon Beef Burger', '2 lớp bò nướng kèm thịt xông khói giòn rụm.', 95000.00, 'https://png.pngtree.com/png-clipart/20250124/original/pngtree-double-decker-burger-delight-beef-bacon-and-swiss-cheese-png-image_20021889.png', 1, 0.0, 0),
+(4, 1, 'Burger Tôm Hoàng Kim', 'Nhân tôm tươi xay nhuyễn và sốt trứng muối.', 75000.00, 'https://png.pngtree.com/png-vector/20240208/ourmid/pngtree-delicious-crispy-chicken-burger-png-image_11732556.png', 1, 0.0, 0),
+(5, 1, 'Burger Cá Tuyết', 'Cá tuyết tươi chiên giòn sốt Tartar đặc biệt.', 69000.00, 'https://img.pikbest.com/best/video_preview_img/2512/11660198-692d4ccbb48b9.jpg!w340', 1, 0.0, 0),
+(6, 1, 'Hotdog Xúc Xích Đức', 'Bánh mì mềm kẹp xúc xích Đức nướng lò.', 45000.00, 'https://file.hstatic.net/200000680207/file/goi_y_cach_lam_banh_hotdog_ccda2308332c4bad92e1d982c28957ce_grande.jpg', 1, 0.0, 0),
+(7, 1, 'Burger Heo Quay Giòn Bì', 'Thịt heo quay giòn bì phong cách Việt.', 59000.00, 'https://file.hstatic.net/200000700229/article/cach-lam-banh-hamburger-heo-thumb_f4cc7227c0e04914905396429d6347d9.jpg', 1, 0.0, 0),
+(8, 1, 'Burger Chay Đậu Nành', 'Nhân đậu nành hữu cơ dành cho người ăn kiêng.', 55000.00, 'https://cdn.tgdd.vn/Products/Images/7170/243154/bhx/nhan-burger-dau-thuan-chay-ck-food-hop-260g-202109060157389322.jpg', 1, 0.0, 0),
+(9, 1, 'Hotdog Chili Cay', 'Xúc xích nướng kèm sốt bò bằm cay nồng.', 52000.00, 'https://static.vecteezy.com/system/resources/thumbnails/056/424/551/small/a-delicious-hot-dog-topped-with-chili-and-sauce-served-on-a-rustic-surface-photo.jpg', 1, 0.0, 0),
+(10, 1, 'Monster Burger 3 Tầng', 'Thách thức vị giác với 3 lớp thịt bò khổng lồ.', 185000.00, 'https://img.pikbest.com/photo/20240922/doubledecker-burger-_10875810.jpg!f305cw', 1, 0.0, 0),
+(11, 2, 'Pizza Hải Sản Pesto', 'Sốt Pesto xanh, tôm, mực và nghêu tươi.', 169000.00, 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38', 1, 0.0, 0),
+(12, 2, 'Pizza Bò Bít Tết Tiêu Đen', 'Thịt bò thăn thái lát rưới sốt tiêu đen.', 189000.00, 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002', 1, 0.0, 0),
+(13, 2, 'Pizza Pepperoni Cổ Điển', 'Phủ kín xúc xích Ý và phô mai Mozzarella.', 145000.00, 'https://images.unsplash.com/photo-1628840042765-356cda07504e', 1, 0.0, 0),
+(14, 2, 'Pizza Gà Nướng Mật Ong', 'Thịt gà mềm mại quyện cùng dứa thơm ngọt.', 139000.00, 'https://product.hstatic.net/200000783013/product/pizza_ga_rau_cu_95c5584c95084a16b113e4555e56baec_master.jpg', 1, 0.0, 0),
+(15, 2, 'Pizza 4 Loại Phô Mai', 'Sự hòa quyện của 4 dòng phô mai Châu Âu.', 155000.00, 'https://product.hstatic.net/200000233543/product/trich_dan_tu_long_co_gai_ngoi_tren_mot_canh_dong__13__b65c890961234809a73dda3df0e83bb2.png', 1, 0.0, 0),
+(16, 2, 'Mì Ý Sốt Bò Bằm', 'Spaghetti Bolognese thịt bò bằm truyền thống.', 79000.00, 'https://images.unsplash.com/photo-1622973536968-3ead9e780960', 1, 0.0, 0),
+(17, 2, 'Mì Ý Sốt Kem Nấm', 'Sốt Carbonara béo ngậy và thịt xông khói.', 85000.00, 'https://bizweb.dktcdn.net/100/004/714/files/19-d6b68667-be15-46b1-b8e3-20b281432d4e.png?v=1660531191646', 1, 0.0, 0),
+(18, 2, 'Mì Ý Hải Sản Cay', 'Mì Ý xào tôm mực và sốt ớt đặc trưng.', 95000.00, 'https://images.unsplash.com/photo-1563379926898-05f4575a45d8', 1, 0.0, 0),
+(19, 2, 'Pizza Rau Củ Garden', 'Ớt chuông, oliu, ngô và cà chua bi.', 129000.00, 'https://png.pngtree.com/png-clipart/20250418/original/pngtree-freshly-baked-vegetable-pizza-with-cheese-and-tomato-toppings-png-image_20719419.png', 1, 0.0, 0),
+(20, 2, 'Mì Ý Sốt Chanh Dây Cá Hồi', 'Cá hồi áp chảo quyện cùng sốt chanh dây lạ miệng.', 125000.00, 'https://cdn.tgdd.vn/2020/10/CookProduct/Miycahoi-1200x676.jpg', 1, 0.0, 0),
+(21, 3, 'Cơm Gà Xối Mỡ Da Giòn', 'Đùi gà chiên giòn tan kèm cơm đảo tơi xốp.', 55000.00, 'https://cdn.tgdd.vn/2022/01/CookRecipe/Avatar/com-ga-chien-xoi-mo-khong-can-chien-com-thumbnail.jpg', 1, 0.0, 0),
+(22, 3, 'Cơm Bò Lúc Lắc', 'Bò xào mềm cùng hành tây và ớt chuông.', 85000.00, 'https://cdn-i.doisongphapluat.com.vn/resize/th/upload/2024/07/12/cach-lam-com-bo-luc-lac-mem-tan-thom-ngon-nhu-nha-hang1-16300117.jpg', 1, 0.0, 0),
+(23, 3, 'Cơm Gà Viên Teriyaki', 'Gà viên popcorn rưới sốt Nhật ngọt thanh.', 49000.00, 'https://png.pngtree.com/png-vector/20240716/ourmid/pngtree-grilled-chicken-teriyaki-rice-wirh-vegetable-png-image_13105614.png', 1, 0.0, 0),
+(24, 3, 'Cơm Tấm Sườn Nướng', 'Sườn heo cốt lết nướng mật ong vị Việt.', 65000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS-BqRhZ62zfFJTXfviBD__NdMlUVUwJB0-Ig&s', 1, 0.0, 0),
+(25, 3, 'Cơm Chiên Hải Sản', 'Cơm chiên tơi xốp cùng tôm mực và trứng.', 70000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ28BwDaLOehII9Uj2xvqoQmlm4_OlnuPdxTQ&s', 1, 0.0, 0),
+(26, 3, 'Cơm Cá Hồi Nướng Muối Ớt', 'Cá hồi Na Uy nướng cay nồng bắt cơm.', 115000.00, 'https://images.unsplash.com/photo-1467003909585-2f8a72700288', 1, 0.0, 0),
+(27, 3, 'Cơm Trứng Cuộn Omurice', 'Phong cách Nhật Bản với sốt cà chua mịn.', 59000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVyX9nHdegUYHKbqNfKkHSn8kCmrkxkjBNHA&s', 1, 0.0, 0),
+(28, 3, 'Cơm Trộn Hàn Quốc', 'Bibimbap đầy đủ thịt bò và rau củ.', 79000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwnAynuL18NCDAMhK96ezcaFsmJgCrBNgsWw&s', 1, 0.0, 0),
+(29, 3, 'Cơm Curry Heo Chiên Xù', 'Sốt cà ri béo ngậy và thịt heo chiên xù.', 89000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRoQTWbZeiigHonRQHWazxdG2qZLy88mc9mjw&s', 1, 0.0, 0),
+(30, 3, 'Cơm Đùi Vịt Quay', 'Thịt vịt quay mềm thơm da giòn rụm.', 95000.00, 'https://png.pngtree.com/thumb_back/fh260/background/20230518/pngtree-roasted-duck-with-rice-and-sauce-image_2529187.jpg', 1, 0.0, 0),
+(31, 4, 'Đùi Gà Rán Truyền Thống', 'Đùi gà lớn tẩm bột chiên xù, vỏ giòn tan, thịt bên trong mềm ngọt.', 35000.00, 'https://png.pngtree.com/png-clipart/20250119/original/pngtree-fried-chicken-drumstick-on-transparent-background-png-image_20033924.png', 1, 5.0, 150),
+(32, 4, 'Cánh Gà Rán Giòn (2 Miếng)', 'Cánh gà khúc giữa tẩm gia vị đậm đà, chiên vàng ươm.', 45000.00, 'https://png.pngtree.com/png-clipart/20241010/original/pngtree-fresh-piece-of-crispy-fried-chicken-fast-food-png-image_16260942.png', 1, 4.8, 92),
+(33, 4, 'Gà Rán Sốt Cay Hàn Quốc', 'Gà chiên giòn rưới đẫm sốt Gochujang cay nồng chuẩn vị Seoul.', 55000.00, 'https://png.pngtree.com/background/20250609/original/pngtree-crispy-korean-fried-chicken-with-spicy-and-sweet-sauce-picture-image_16641464.jpg', 1, 4.9, 215),
+(34, 4, 'Gà Rán Lắc Phô Mai', 'Miếng gà giòn lắc cùng bột phô mai mặn ngọt thơm lừng.', 49000.00, 'https://cdn.tgdd.vn/Files/2021/08/28/1378436/bi-quyet-lam-ga-lac-pho-mai-gion-thom-sieu-ngon-ma-ai-cung-lam-duoc-202201101446598450.jpg', 1, 4.7, 128),
+(35, 4, 'Gà Rán Không Xương (Strips)', 'Thịt ức gà phi lê chiên giòn, không xương, cực kỳ tiện lợi.', 42000.00, 'https://lh6.googleusercontent.com/proxy/Fo_hY6joMdpkniYfoExjKx457S6wDsWqbfQ44LP8c-5mBfYcTZ3ZQFRIgg529G9q_aCo2Y20B7PJOpA_7ceo0g19w90_5KwkqJJ7KIOKabExLjTwtcxf4jLZMgLnvZSD85fLz6Lfng', 1, 4.5, 88),
+(36, 4, 'Gà Rán Sốt Tỏi Mật Ong', 'Vị ngọt thanh của mật ong hòa với hương tỏi phi thơm nức.', 52000.00, 'https://file.hstatic.net/200000700229/article/ga-sot-mat-ong-thumb_c84be3a51b524985bd9f9ac2d4f95169.jpg', 1, 4.8, 76),
+(37, 4, 'Combo 3 Miếng Gà Giòn', 'Set siêu hời gồm 3 miếng gà lớn tự chọn cho tín đồ gà rán.', 89000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS3yI49N4gUILCKfPeMn5PXV_rC7dpsKU26aQ&s', 1, 5.0, 310),
+(38, 4, 'Gà Popcorn Giòn Tan', 'Những viên gà nhỏ tẩm bột chiên giòn, món ăn vặt hoàn hảo.', 39000.00, 'https://bizweb.dktcdn.net/thumb/1024x1024/100/485/487/products/8bb718581b95befc612fb2d0658c89f6-1684906761732.jpg', 1, 4.6, 195),
+(39, 4, 'Gà Rán Sốt Trứng Muối', 'Lớp vỏ gà giòn kết hợp sốt trứng muối bùi béo màu vàng óng.', 59000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgrvxbEvgJCWltDYfU95iN4uwm2FxZ6abS8Q&s', 1, 4.9, 84),
+(40, 4, 'Gà Nuggets 6 Miếng', 'Thịt phi lê gà tươi xay tẩm bột chiên vàng đều.', 39000.00, 'https://png.pngtree.com/png-vector/20241114/ourlarge/pngtree-crispy-fried-chicken-nuggets-with-dipping-sauce-png-image_14326201.png', 1, 4.7, 110),
+(41, 5, 'Khoai Tây Chiên Pháp', 'Sợi khoai dài vàng giòn nhập khẩu.', 29000.00, 'https://png.pngtree.com/png-vector/20250429/ourlarge/pngtree-crispy-french-fries-png-image_15995969.png', 1, 0.0, 0),
+(42, 5, 'Salad Cá Ngừ Sốt Mè', 'Rau xanh tươi sạch kèm cá ngừ ngâm dầu.', 55000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQy8XObm4LQqPcNp5abdJ8gzMvVW045yJPGkw&s', 1, 0.0, 0),
+(43, 5, 'Phô Mai Que Mozzarella', 'Bên ngoài giòn rụm, bên trong kéo sợi cực dài.', 42000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR4CoOjWwLKrkaYLZG4kJ__-y1mrySug3FfYA&s', 1, 0.0, 0),
+(44, 5, 'Mực Vòng Chiên Xù', 'Mực tươi cắt khoanh tẩm bột chiên xù giòn.', 69000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-jvdwzGG_b85Kud4plvqvmUP3lqauSSoBFA&s', 1, 0.0, 0),
+(45, 5, 'Salad Ức Gà Áp Chảo', 'Dành cho chế độ ăn uống lành mạnh.', 60000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQZeEh-HLd_DChOG-Y7T3WHe0e53Jf6crW9Gw&s', 1, 0.0, 0),
+(46, 5, 'Khoai Tây Lắc Trứng Muối', 'Vị mặn mặn, bùi bùi cực kỳ kích thích.', 39000.00, 'https://vn-test-11.slatic.net/shop/ff688637704489eac1665df2a4468868.png', 1, 0.0, 0),
+(47, 5, 'Ngô Chiên Bơ Tỏi', 'Hạt ngô ngọt bọc bột chiên bơ thơm phức.', 32000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLaIQs3Pn_yDXghXYBQaEMztRqCW4oiANs3A&s', 1, 0.0, 0),
+(48, 5, 'Khoai Tây Nghiền Sốt Nâu', 'Mịn màng, tan ngay trong miệng.', 25000.00, 'https://png.pngtree.com/png-clipart/20250429/original/pngtree-fluffy-mashed-potatoes-with-rich-gravy-swirl-glossy-texture-png-image_20905179.png', 1, 0.0, 0),
+(49, 5, 'Súp Bắp Cua Hải Sản', 'Món khai vị ấm nóng đầy đủ dinh dưỡng.', 35000.00, 'https://product.hstatic.net/200000956832/product/cach-nau-sup-hai-san-0_9259d0c44ce9432b84e5a41fcaffb852_grande.jpg', 1, 0.0, 0),
+(50, 5, 'Nấm Bào Ngư Chiên Giòn', 'Món ăn vặt chay giòn rụm bắt miệng.', 30000.00, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSscddIV8M-4aKKhj8tzzIdFA0-xdGb7EVMMQ&s', 1, 0.0, 0);
+-- Chạy ở trên rồi thì chạy ở dưới này
 USE AppFastFood;
 
 -- =========================================================
@@ -229,13 +252,30 @@ SET FOREIGN_KEY_CHECKS = 1; -- Bật lại kiểm tra ngay
 -- =========================================================
 -- BƯỚC 2: Tạo các Chương Trình Khuyến Mãi (Bảng Cha)
 -- =========================================================
-INSERT INTO Promotions (name, discount_percent, start_date, end_date, status) VALUES 
-('Lễ Hội Burger - Mua là mê', 15.00, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), 1),      -- ID: 1
-('Tiệc Pizza & Mì Ý - Chuẩn vị Âu', 10.00, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), 1), -- ID: 2
-('Cơm Trưa Văn Phòng - Nạp năng lượng', 10.00, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), 1), -- ID: 3
-('Thế Giới Gà Rán - Giòn tan rôm rốp', 12.00, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), 1), -- ID: 4
-('Ăn Vặt Thả Ga - Không lo về giá', 20.00, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), 1), -- ID: 5
-('FLASH SALE: 3 Món Best Seller', 30.00, NOW(), DATE_ADD(NOW(), INTERVAL 7 DAY), 1);    -- ID: 6
+
+INSERT INTO `promotions` (`promotion_id`, `name`, `discount_percent`, `start_date`, `end_date`, `status`) VALUES
+(1, 'Đại Tiệc Tết Ất Tỵ 2026', 35.00, '2026-01-10 00:00:00', '2026-02-10 00:00:00', 1),
+(2, 'Siêu Hội Black Friday', 30.00, '2026-11-20 00:00:00', '2026-11-30 00:00:00', 1),
+(3, 'Giáng Sinh An Lành', 25.00, '2026-12-20 00:00:00', '2026-12-26 00:00:00', 1),
+(4, 'Quốc Khánh 2/9 Rực Rỡ', 20.00, '2026-08-29 00:00:00', '2026-09-04 00:00:00', 1),
+(5, 'Chào Mừng 30/4 - 1/5', 20.00, '2026-04-25 00:00:00', '2026-05-05 00:00:00', 1),
+(6, 'Valentine Ngọt Ngào', 15.00, '2026-02-10 00:00:00', '2026-02-15 00:00:00', 1),
+(7, 'Quốc Tế Phụ Nữ 8/3', 15.00, '2026-03-05 00:00:00', '2026-03-10 00:00:00', 1),
+(8, 'Ngày Nhà Giáo 20/11', 15.00, '2026-11-15 00:00:00', '2026-11-25 00:00:00', 1),
+(9, 'Quốc Tế Thiếu Nhi 1/6', 20.00, '2026-06-01 00:00:00', '2026-06-05 00:00:00', 1),
+(10, 'Ngày Hội Gia Đình 28/6', 15.00, '2026-01-12 00:00:00', '2026-01-14 00:00:00', 1),
+(11, 'Siêu Hội 1/1 Khởi Đầu Mới', 10.00, '2026-01-01 00:00:00', '2026-01-02 00:00:00', 1),
+(12, 'Ngày Đôi 2/2 Deal Ngập Trời', 10.00, '2026-02-02 00:00:00', '2026-02-03 00:00:00', 1),
+(13, 'Săn Deal 3/3 Ăn Thả Ga', 12.00, '2026-03-03 00:00:00', '2026-03-04 00:00:00', 1),
+(14, 'Ưu Đãi 4/4 Bùng Nổ Vị Giác', 12.00, '2026-04-04 00:00:00', '2026-04-05 00:00:00', 1),
+(15, 'Tiệc Vui 5/5 Sale Cực Khủng', 15.00, '2026-05-05 00:00:00', '2026-05-06 00:00:00', 1),
+(16, 'Siêu Sale 6/6 Giá Sốc', 18.00, '2026-06-06 00:00:00', '2026-06-07 00:00:00', 1),
+(17, 'Ngày Vàng 7/7 Chốt Đơn Ngay', 20.00, '2026-07-07 00:00:00', '2026-07-08 00:00:00', 1),
+(18, 'Đại Hội 8/8 Ăn Ngon Mặc Đẹp', 20.00, '2026-08-08 00:00:00', '2026-08-09 00:00:00', 1),
+(19, 'Siêu Hội 9/9 Đỉnh Cao Ưu Đãi', 25.00, '2026-09-09 00:00:00', '2026-09-10 00:00:00', 1),
+(20, 'Bùng Nổ 10/10 Voucher 10/10', 25.00, '2026-10-10 00:00:00', '2026-10-11 00:00:00', 1),
+(21, 'Siêu Sale 11/11 Lớn Nhất Năm', 30.00, '2026-11-11 00:00:00', '2026-11-12 00:00:00', 1),
+(22, 'Lễ Hội 12/12 Cuối Năm Rực Rỡ', 30.00, '2026-12-12 00:00:00', '2026-12-13 00:00:00', 1);
 
 -- =========================================================
 -- BƯỚC 3: Áp dụng khuyến mãi (Bảng Con)
@@ -275,75 +315,65 @@ VALUES (6, 15, NULL, 1);
 INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) 
 VALUES (6, 3, NULL, 1);
 
-//Scipt thêm promotion_id vào order
+-- Scipt thêm promotion_id vào order
 -- Thêm cột promotion_id vào bảng Orders (cho phép NULL nếu không dùng voucher)
 ALTER TABLE Orders
 ADD COLUMN promotion_id INT NULL AFTER user_id,
 ADD CONSTRAINT fk_order_promotion
 FOREIGN KEY (promotion_id) REFERENCES Promotions(promotion_id);
 -- Nếu cột đã tồn tại
---ALTER TABLE Orders
---ADD CONSTRAINT fk_order_promotion
---FOREIGN KEY (promotion_id) REFERENCES Promotions(promotion_id);
---Thêm cột amount discount cho order
+-- ALTER TABLE Orders
+-- ADD CONSTRAINT fk_order_promotion
+-- FOREIGN KEY (promotion_id) REFERENCES Promotions(promotion_id);
+-- Thêm cột amount discount cho order
 ALTER TABLE orders 
 ADD COLUMN discount_amount DECIMAL(15, 2) DEFAULT 0 AFTER subtotal;
+-- =========================================================
+-- BƯỚC 3: ÁP DỤNG KHUYẾN MÃI DÀN ĐỀU (22 CHƯƠNG TRÌNH)
+-- =========================================================
 
--- Hi Danh
+-- Xóa dữ liệu cũ để nạp mới hoàn toàn cho đẹp
+SET FOREIGN_KEY_CHECKS = 0;
+DELETE FROM Promotion_Details;
+ALTER TABLE Promotion_Details AUTO_INCREMENT = 1;
+SET FOREIGN_KEY_CHECKS = 1;
 
-USE AppFastFood;
+INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) VALUES 
+-- 1. KHUYẾN MÃI THEO DANH MỤC (Áp dụng diện rộng)
+(1, NULL, 1, 1), -- Tết Ất Tỵ: Giảm toàn bộ Burger
+(1, NULL, 4, 1), -- Tết Ất Tỵ: Giảm toàn bộ Gà Rán
+(2, NULL, 2, 1), -- Black Friday: Giảm toàn bộ Pizza & Mì Ý
+(3, NULL, 5, 1), -- Giáng Sinh: Giảm đồ ăn nhẹ & Salad
+(4, NULL, 3, 1), -- Quốc Khánh 2/9: Giảm các món Cơm
+(5, NULL, 1, 1), -- 30/4 - 1/5: Giảm Burger
+(8, NULL, 3, 1), -- 20/11: Giảm các món Cơm cho thầy cô
+(10, NULL, 2, 1), -- Ngày hội gia đình: Giảm Pizza
 
-UPDATE Products
-SET image_url = CASE product_id
-    -- === 1. Burger & Hotdog ===
-    WHEN 1 THEN 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800' -- Burger Bò
-    WHEN 2 THEN 'https://images.unsplash.com/photo-1615297928064-24977384d0f9?auto=format&fit=crop&w=800' -- Burger Gà
-    WHEN 3 THEN 'https://img.freepik.com/premium-photo/shrimp-burger-isolated_185193-76478.jpg' -- Burger Tôm (Minh họa)
-    WHEN 4 THEN 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800' -- Burger Cá
-    WHEN 5 THEN 'https://images.unsplash.com/photo-1612392062631-9bdd7772708d?auto=format&fit=crop&w=800' -- Hotdog
+-- 2. KHUYẾN MÃI THEO SẢN PHẨM CỤ THỂ (Flash Sale / Deal độc quyền)
+-- Valentine (Promo 6): Các món dành cho cặp đôi
+(6, 11, NULL, 1), -- Pizza Hải Sản
+(6, 15, NULL, 1), -- Pizza 4 Loại Phô Mai
+(6, 20, NULL, 1), -- Mì Ý Cá Hồi
 
-    -- === 2. Pizza & Mì Ý ===
-    WHEN 6 THEN 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&w=800' -- Pizza Pepperoni
-    WHEN 7 THEN 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800' -- Pizza Hải sản
-    WHEN 8 THEN 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=800' -- Pizza Phô mai
-    WHEN 9 THEN 'https://images.unsplash.com/photo-1622973536968-3ead9e780960?auto=format&fit=crop&w=800' -- Mì Ý bò bằm
-    WHEN 10 THEN 'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=800' -- Mì Ý cay hải sản
-    WHEN 11 THEN 'https://images.unsplash.com/photo-1612874742237-6526221588e3?auto=format&fit=crop&w=800' -- Mì Ý sốt kem (Carbonara)
+-- Quốc tế phụ nữ 8/3 (Promo 7): Ưu tiên Salad & Món nhẹ
+(7, 42, NULL, 1), -- Salad Cá Ngừ
+(7, 45, NULL, 1), -- Salad Ức Gà
 
-    -- === 3. Cơm & Món Chính ===
-    WHEN 12 THEN 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=800' -- Cơm gà rán
-    WHEN 13 THEN 'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=800' -- Cơm gà viên (Minh họa Asian Rice)
-    WHEN 14 THEN 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800' -- Cơm hải sản
+-- Quốc tế thiếu nhi 1/6 (Promo 9): Gà & Khoai tây
+(9, 31, NULL, 1), -- Đùi Gà Rán
+(9, 38, NULL, 1), -- Gà Popcorn
+(9, 41, NULL, 1), -- Khoai Tây Chiên
 
-    -- === 4. Gà Rán ===
-    WHEN 15 THEN 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=800' -- Gà rán truyền thống
-    WHEN 16 THEN 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?auto=format&fit=crop&w=800' -- Gà sốt cay
-    WHEN 17 THEN 'https://images.unsplash.com/photo-1642684879581-2c6c0b9c00b0?auto=format&fit=crop&w=800' -- Gà sốt mật ong
-    WHEN 18 THEN 'https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?auto=format&fit=crop&w=800' -- Gà viên (Popcorn)
-    WHEN 19 THEN 'https://images.unsplash.com/photo-1527477396000-e27163b481c2?auto=format&fit=crop&w=800' -- Cánh gà nướng BBQ
-    WHEN 20 THEN 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=800' -- Gà Nugget
-
-    -- === 5. Đồ Ăn Nhẹ ===
-    WHEN 21 THEN 'https://images.unsplash.com/photo-1630384060421-a4323ce5663e?auto=format&fit=crop&w=800' -- Khoai tây chiên
-    WHEN 22 THEN 'https://images.unsplash.com/photo-1573080496987-a199f8cd4058?auto=format&fit=crop&w=800' -- Khoai tây lắc phô mai
-    WHEN 23 THEN 'https://www.shutterstock.com/image-photo/fish-fingers-sticks-isolated-on-600w-1052865230.jpg' -- Cá chiên giòn
-    WHEN 24 THEN 'https://images.unsplash.com/photo-1548340748-432e07026f9d?auto=format&fit=crop&w=800' -- Phô mai que
-    WHEN 25 THEN 'https://images.unsplash.com/photo-1604909052743-94e838986d24?auto=format&fit=crop&w=800' -- Mực chiên giòn
-    WHEN 26 THEN 'https://images.unsplash.com/photo-1559737558-2f5a3b8699a3?auto=format&fit=crop&w=800' -- Tôm chiên xù
-    WHEN 27 THEN 'https://images.unsplash.com/photo-1595940976191-1b79362544e8?auto=format&fit=crop&w=800' -- Xúc xích nướng
-    WHEN 28 THEN 'https://images.unsplash.com/photo-1551248429-40975aa4de74?auto=format&fit=crop&w=800' -- Salad (Coleslaw)
-    WHEN 29 THEN 'https://images.unsplash.com/photo-1619860860774-1e7e17c0cb90?auto=format&fit=crop&w=800' -- Khoai tây nghiền
-    ELSE image_url 
-END
-WHERE product_id BETWEEN 1 AND 29;
-ALTER TABLE reviews 
-ADD order_id INT NOT NULL AFTER product_id;
-
-ALTER TABLE reviews
-ADD CONSTRAINT fk_reviews_orders
-FOREIGN KEY (order_id) REFERENCES orders(order_id)
-ON DELETE CASCADE;
-
--- Thêm luật: Một user, trong 1 đơn hàng, chỉ được review 1 sản phẩm 1 lần
-ALTER TABLE reviews 
-ADD UNIQUE KEY unique_review_per_order (user_id, order_id, product_id);
+-- CÁC NGÀY ĐÔI (Săn deal cực mạnh cho món Hot)
+(11, 1, NULL, 1),  -- 1/1: Burger Bò Wagyu
+(12, 12, NULL, 1), -- 2/2: Pizza Bò Bít Tết
+(13, 21, NULL, 1), -- 3/3: Cơm Gà Xối Mỡ
+(14, 33, NULL, 1), -- 4/4: Gà Sốt Cay Hàn Quốc
+(15, 43, NULL, 1), -- 5/5: Phô Mai Que
+(16, 10, NULL, 1), -- 6/6: Monster Burger 3 Tầng
+(17, 13, NULL, 1), -- 7/7: Pizza Pepperoni
+(18, 22, NULL, 1), -- 8/8: Cơm Bò Lúc Lắc
+(19, 39, NULL, 1), -- 9/9: Gà Sốt Trứng Muối
+(20, 46, NULL, 1), -- 10/10: Khoai Tây Lắc Trứng Muối
+(21, 37, NULL, 1), -- 11/11: Combo 3 Miếng Gà
+(22, 15, NULL, 1); -- 12/12: Pizza 4 Loại Phô Mai
