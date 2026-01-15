@@ -32,3 +32,13 @@ export default function auth(req, res, next) {
         });
     }
 }
+export function checkAdmin(req, res, next) {
+    if (req.userRole && req.userRole.toUpperCase() === 'ADMIN') {
+        next();
+    } else {
+        return res.status(403).json({
+            success: false,
+            message: "Access denied. Admin resources only." 
+        });
+    }
+}

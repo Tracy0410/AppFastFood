@@ -31,7 +31,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isLoading = true;
 
   Address? _currentAddress;
-  Promotion? _selectedPromotion; // Lưu object Voucher đã chọn
+  Promotion? _selectedPromotion;
   String _paymentMethod = "COD";
 
   int promotionId = 0;
@@ -49,7 +49,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
-  // --- 2. HÀM CHỌN VOUCHER (MỚI THÊM) ---
   void _onSelectVoucher() async {
     // 1. Chuyển đổi dữ liệu sang CartItem (Bạn đã làm đúng chỗ này)
     List<CartItem> tempCartItems = widget.inputItems.map((item) {
@@ -57,7 +56,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         cartId: 0, 
         productId: item.productId,
         categoryId: item.categoryId, 
-        name: "", 
+        name: "",
         price: 0,
         imageUrl: "",
         quantity: item.quantity,
@@ -65,7 +64,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
     }).toList();
 
-    // 2. Mở màn hình chọn Voucher
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -73,13 +71,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         builder: (context) => PromotionCheckoutScreen(cartItems: tempCartItems), 
       ),
     );
-
     if (result != null && result is Promotion) {
       setState(() {
         _selectedPromotion = result; 
       });
 
-      // Gọi lại API tính tiền để cập nhật giá giảm
       _fetchPreview();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -90,10 +86,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
 if (result != null && result is Promotion) {
   setState(() {
-    _selectedPromotion = result; // Lưu voucher đã chọn
+    _selectedPromotion = result;
   });
 
-      // Gọi lại API tính tiền để cập nhật giá giảm
       _fetchPreview();
 
       ScaffoldMessenger.of(

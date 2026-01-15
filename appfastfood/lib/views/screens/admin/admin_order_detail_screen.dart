@@ -55,29 +55,193 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     }
   }
 
+  // Hàm riêng để cập nhật trạng thái thanh toán - ĐÃ SỬA
+  Future<bool> _updatePaymentStatus(String newPaymentStatus) async {
+    try {
+      final api = ApiService();
+      bool success = await api.updatePaymentStatus(
+        widget.order['order_id'],
+        newPaymentStatus,
+      );
+      
+      if (success) {
+        print("✅ Payment status updated to $newPaymentStatus");
+        // Cập nhật UI local
+        setState(() {
+          widget.order['payment_status'] = newPaymentStatus;
+        });
+      } else {
+        print("❌ Failed to update payment status");
+      }
+      
+      return success;
+    } catch (e) {
+      print("❌ Lỗi cập nhật thanh toán: $e");
+      return false;
+    }
+  }
+
+  // Hàm xử lý logic khi bấm "Giao cho shipper" - ĐÃ SỬA
+Future<void> _handleShipAndPay() async {
+  if (_isLoading) return;
+  
+  setState(() => _isLoading = true);
+  
+  try {
+    final orderId = widget.order['order_id'];
+    final api = ApiService();
+
+    print("🔄 [1/2] Đang cập nhật trạng thái giao hàng...");
+    
+    // 1. Cập nhật trạng thái đơn hàng -> SHIPPED
+    bool orderSuccess = await api.updateOrderStatus(orderId, 'SHIPPED');
+
+    if (!orderSuccess) {
+      throw Exception("Không thể cập nhật trạng thái giao hàng");
+    }
+
+    print("✅ [1/2] Đã cập nhật trạng thái giao hàng thành công");
+    print("🔄 [2/2] Đang cập nhật trạng thái thanh toán...");
+    
+    // 2. Cập nhật trạng thái thanh toán -> PAID
+    bool paymentSuccess = await api.updatePaymentStatus(orderId, 'PAID');
+
+    if (!paymentSuccess) {
+      // Hiển thị cảnh báo nhưng không throw exception
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.orange,
+          content: Text("Đã chuyển sang trạng thái SHIPPED nhưng chưa cập nhật được thanh toán!"),
+          duration: Duration(seconds: 4),
+        ),
+      );
+      
+      // Cập nhật UI local
+      setState(() {
+        widget.order['order_status'] = 'SHIPPED';
+        widget.order['payment_status'] = 'UNPAID'; // Giữ nguyên hoặc để UNPAID
+      });
+    } else {
+      // Cập nhật UI local
+      setState(() {
+        widget.order['order_status'] = 'SHIPPED';
+        widget.order['payment_status'] = 'PAID';
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.green,
+          content: Text("✅ Đã giao cho Shipper và cập nhật Đã thanh toán!"),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+
+    // 3. Cập nhật callback
+    widget.onStatusUpdated();
+    
+    // Đợi 1 chút để người dùng thấy thông báo
+    await Future.delayed(const Duration(seconds: 1));
+    
+    // Quay lại màn hình danh sách
+    if (mounted) {
+      Navigator.pop(context);
+    }
+
+  } catch (e) {
+    print("❌ Exception in _handleShipAndPay: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("❌ Lỗi: ${e.toString()}"),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+}
+
   Future<void> _updateStatus(String newStatus) async {
+    if (_isLoading) return;
+    
     setState(() => _isLoading = true);
     try {
-      bool success = await ApiService().updateOrderStatus(
+      final api = ApiService();
+      bool success = await api.updateOrderStatus(
         widget.order['order_id'],
         newStatus,
       );
       
       if (success) {
         widget.onStatusUpdated();
-        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Đã cập nhật trạng thái thành: $newStatus")),
+          SnackBar(
+            content: Text("✅ Đã cập nhật trạng thái thành: $newStatus"),
+            duration: const Duration(seconds: 2),
+          ),
         );
+        await Future.delayed(const Duration(milliseconds: 500));
+        Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Lỗi cập nhật trạng thái")),
+          const SnackBar(
+            content: Text("❌ Lỗi cập nhật trạng thái"),
+            duration: Duration(seconds: 3),
+          ),
         );
       }
     } catch (e) {
       print("❌ Lỗi khi cập nhật: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Lỗi: $e"),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Hàm cập nhật chỉ trạng thái thanh toán
+  Future<void> _updatePaymentOnly(String newPaymentStatus) async {
+    if (_isLoading) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      bool success = await _updatePaymentStatus(newPaymentStatus);
+      
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("✅ Đã cập nhật trạng thái thanh toán thành: $newPaymentStatus"),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("❌ Lỗi cập nhật trạng thái thanh toán"),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      print("❌ Lỗi khi cập nhật thanh toán: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Lỗi: $e"),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -85,6 +249,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
   Widget build(BuildContext context) {
     final order = widget.order;
     final status = order['order_status'];
+    final paymentStatus = order['payment_status'];
     final date = DateTime.parse(order['created_at']);
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
@@ -181,23 +346,35 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "💳 Thanh toán",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                "💳 Thanh toán",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            order['payment_status'] == 'PAID'
+                            paymentStatus == 'PAID'
                                 ? "✅ Đã thanh toán"
-                                : "⏳ Chờ thanh toán (COD)",
+                                : paymentStatus == 'UNPAID'
+                                    ? "⏳ Chờ thanh toán (COD)"
+                                    : paymentStatus == 'PENDING'
+                                        ? "⏳ Đang chờ thanh toán"
+                                        : "❌ Đã hoàn tiền",
                             style: TextStyle(
-                              color: order['payment_status'] == 'PAID'
+                              color: paymentStatus == 'PAID'
                                   ? Colors.green
-                                  : Colors.orange,
+                                  : paymentStatus == 'UNPAID' || paymentStatus == 'PENDING'
+                                      ? Colors.orange
+                                      : Colors.red,
                               fontWeight: FontWeight.w500,
+                              fontSize: 15,
                             ),
                           ),
                           if (order['note'] != null &&
@@ -211,7 +388,20 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(order['note'].toString()),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                order['note'].toString(),
+                                style: TextStyle(
+                                  color: Colors.grey[800],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
                           ],
                         ],
                       ),
@@ -270,6 +460,8 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                                             style: const TextStyle(
                                               fontWeight: FontWeight.w500,
                                             ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
@@ -281,13 +473,26 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                                         ],
                                       ),
                                     ),
-                                    // Số lượng
-                                    Text(
-                                      "x${item['quantity']}",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
+                                    // Số lượng và tổng
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          "x${item['quantity']}",
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          fmt.format(safeParseDouble(item['price']) * (item['quantity'] ?? 1)),
+                                          style: TextStyle(
+                                            color: Colors.green[700],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -307,7 +512,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                           _buildTotalRow("Tạm tính", safeParseDouble(order['subtotal'])),
                           _buildTotalRow("Giảm giá",
                               safeParseDouble(order['discount_amount'] ?? 0)),
-                          _buildTotalRow("Phí vận chuyển", 15000),
+                          _buildTotalRow("Phí vận chuyển", 0),
                           const Divider(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -341,59 +546,124 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _updateStatus('CANCELLED'),
+                            onPressed: _isLoading ? null : () => _updateStatus('CANCELLED'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.red,
                               padding:
                                   const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            child: const Text(
-                              "Hủy đơn",
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    "Hủy đơn",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _updateStatus('PROCESSING'),
+                            onPressed: _isLoading ? null : () => _updateStatus('PROCESSING'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.amber,
                               padding:
                                   const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            child: const Text(
-                              "Xác nhận đơn",
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    "Xác nhận đơn",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                           ),
                         ),
                       ],
                     ),
                   if (status == 'PROCESSING')
                     ElevatedButton(
-                      onPressed: () => _updateStatus('SHIPPED'),
+                      onPressed: _isLoading ? null : () => _handleShipAndPay(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         minimumSize: const Size(double.infinity, 50),
                       ),
-                      child: const Text(
-                        "Giao cho shipper",
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Giao cho shipper",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  "(Tự động cập nhật Đã thanh toán)",
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   if (status == 'SHIPPED')
                     ElevatedButton(
-                      onPressed: () => _updateStatus('DELIVERED'),
+                      onPressed: _isLoading ? null : () => _updateStatus('DELIVERED'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         minimumSize: const Size(double.infinity, 50),
                       ),
-                      child: const Text(
-                        "Xác nhận đã giao",
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              "Xác nhận đã giao",
+                              style: TextStyle(color: Colors.white),
+                            ),
                     ),
+                  const SizedBox(height: 16),
+                  
+                  // Nút quay lại
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                      side: const BorderSide(color: Colors.grey),
+                    ),
+                    child: const Text(
+                      "Quay lại",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -406,8 +676,17 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label),
-          Text(fmt.format(amount)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14),
+          ),
+          Text(
+            fmt.format(amount),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: label == "TỔNG CỘNG" ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
         ],
       ),
     );
@@ -418,7 +697,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       case 'PENDING':
         return 'Chờ xác nhận';
       case 'PROCESSING':
-        return 'Đang xử lý';
+        return 'Đã xác nhận';
       case 'SHIPPED':
         return 'Đang giao';
       case 'DELIVERED':

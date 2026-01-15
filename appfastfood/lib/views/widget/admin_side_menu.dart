@@ -1,4 +1,5 @@
 import 'package:appfastfood/utils/storage_helper.dart';
+import 'package:appfastfood/views/screens/admin/admin_home_screen.dart';
 import 'package:appfastfood/views/screens/users/home_screen.dart';
 import 'package:flutter/material.dart';
 import '../../views/screens/admin/admin_order_screen.dart';
@@ -76,13 +77,11 @@ class AdminSideMenu extends StatelessWidget {
               style: TextStyle(color: Colors.white70),
             ),
           ),
-          
           // Danh sách Menu
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
-              children: [
-                
+              children: [   
                 _buildMenuItem(context, Icons.restaurant, "Sản phẩm", () {
                   Navigator.pop(context); // Đóng Drawer trước
                   Navigator.push(context,
@@ -108,17 +107,11 @@ class AdminSideMenu extends StatelessWidget {
                 _buildMenuItem(context, Icons.notifications_none, "Thông báo", () {
                   Navigator.pop(context);
                 }),
-                _buildMenuItem(context, Icons.bar_chart, "Doanh thu", () {
-                  Navigator.pop(context);
-                }),
                 _buildMenuItem(context, Icons.settings_outlined, "Cài đặt", () {
-                  Navigator.pop(context);
-                }),
-                _buildMenuItem(context, Icons.chat_bubble_outline, "Bình luận", () {
-                  Navigator.pop(context);
-                }),
-                _buildMenuItem(context, Icons.star_border, "Đánh giá", () {
-                  Navigator.pop(context);
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const AdminHomePageScreen()),
+                    (route) => false,
+                  );
                 }),
               ],
             ),
@@ -127,6 +120,7 @@ class AdminSideMenu extends StatelessWidget {
           // Nút Đăng xuất
           _buildMenuItem(context, Icons.logout, "Đăng xuất", () {
             _showLogoutDialog(context); // Gọi hàm xác nhận thay vì chuyển trang ngay
+
           }),
           const SizedBox(height: 30),
         ],

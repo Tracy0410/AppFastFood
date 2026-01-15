@@ -4,6 +4,7 @@ import OrderController from '../controller/orderController.js';
 import PromotionController from '../controller/promotionsController.js';
 import auth from '../middleware/auth.js';
 import multer from 'multer';
+import { checkAdmin } from '../middleware/auth.js';
 
 const userRouter = Router();
 
@@ -75,5 +76,6 @@ userRouter.get('/orders/my-orders', auth, userController.getMyOrders);
 // Lấy chi tiết đơn hàng
 userRouter.get('/orders/detail/:order_id', auth, userController.getOrderDetail);
 
+// Notifications
 userRouter.get('/notifications/sync', auth, userController.getNotificationData);
 export default userRouter;

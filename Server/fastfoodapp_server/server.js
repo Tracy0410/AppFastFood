@@ -7,7 +7,7 @@ import promotionRouter from './routes/promotionRouter.js';
 import PromotionController from './controller/promotionsController.js';
 import aiRouter from './routes/aiRouter.js'; 
 import orderRouter from './routes/orderRouter.js';
-import reviewRouter from './routes/ReviewRouter.js'
+import reviewRouter from './routes/ReviewRouter.js';
 import adminRouter from './routes/adminRoutes.js';
 dotenv.config();
 
@@ -19,7 +19,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes\
+// Routes
 app.use('/api', reviewRouter);
 app.use('/api', orderRouter);
 app.use('/api', productRouter);

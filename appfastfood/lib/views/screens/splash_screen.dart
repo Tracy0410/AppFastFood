@@ -47,7 +47,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ... Giữ nguyên UI của bạn
     return Scaffold(
       backgroundColor: const Color(0xFFE95322),
       body: Center(

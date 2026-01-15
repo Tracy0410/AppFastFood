@@ -25,9 +25,9 @@ const transporter = nodemailer.createTransport({
 
 const vnp_Config = {
     tmnCode: "I49MR19A",
-    hashSecret: "1VOXW52GV9VU09AUCYW3O4IHCJHWQBKT",
+    hashSecret: "E0QDOWJ5E0WTRMNS9X1JC0EH1XTDS8IY",
     url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
-    returnUrl: "http://192.168.100.248:8001/api/payment/vnpay_return"
+    returnUrl: "http://10.13.89.3:8001/api/payment/vnpay_return"
 }
 
 export default class userController {
@@ -765,7 +765,7 @@ export default class userController {
                     req.connection.remoteAddress ||
                     req.socket.remoteAddress ||
                     req.connection.socket.remoteAddress || 
-                    '192.168.100.248';
+                    '10.13.89.3';
                 // 3. Tạo URL thanh toán
                 const paymentUrl = createVnpayUrl({
                     orderId: result.order_id,
@@ -797,15 +797,11 @@ export default class userController {
 
     static async checkAvailablePromotions(req, res) {
         try {
-            console.log("Dữ liệu thô từ Flutter gửi lên:", req.body);
-
-            const { productIds, categoryIds } = req.body;
-            console.log("Input ProductIDs:", productIds);
-            console.log("Input CategoryIDs:", categoryIds);
-
-            const rows = await userModel.getApplicablePromotions(productIds, categoryIds);
-
-            return res.status(200).json({
+            const { product_id,category_id } = req.body; 
+            
+            const promotions = await userModel.getApplicablePromotions(product_id,category_id);
+            console.log(promotions);
+            res.status(200).json({
                 success: true,
                 data: rows
             });
@@ -942,6 +938,60 @@ export default class userController {
             res.status(500).send("Lỗi Server");
         }
     }
+    static async getMyOrders(req, res) {
+            try {
+                const userId = req.userId;
+                const orders = await userModel.getOrdersByUserId(userId);
+                
+                return res.status(200).json({
+                    success: true,
+                    message: "Lấy danh sách đơn hàng thành công",
+                    data: orders
+                });
+            } catch (error) {
+                console.error(error);
+                return res.status(500).json({ success: false, message: "Lỗi server lấy đơn hàng" });
+            }
+        }
+    
+        // API: Lấy chi tiết một đơn hàng cụ thể (kèm danh sách sản phẩm bên trong) Admin
+        static async getOrderDetail(req, res) {
+            try {
+                const { order_id } = req.params; // Lấy order_id từ URL
+                
+                // 1. Lấy thông tin chung đơn hàng
+                const orderInfo = await userModel.getOrderById(order_id);
+                if (!orderInfo) {
+                    return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+                }
+    
+                // 2. Lấy danh sách sản phẩm trong đơn
+                const items = await userModel.getOrderDetail(order_id);
+    
+                // Gộp lại trả về
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        ...orderInfo,
+                        items: items
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+                return res.status(500).json({ success: false, message: "Lỗi server lấy chi tiết đơn" });
+            }
+        }
+    static async getAllOrdersAdmin(req, res) {
+            try {
+                const orders = await userModel.getAllOrders();
+                return res.status(200).json({
+                    success: true,
+                    data: orders
+                });
+            } catch (error) {
+                return res.status(500).json({ success: false, message: "Lỗi server" });
+            }
+        }
 
     // Lấy danh sách khuyến mãi
     static async getPromotions(req, res) {

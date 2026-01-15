@@ -114,9 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
             // PHẦN HEADER
             Container(
               height: 150,
-              decoration: const BoxDecoration(
-                color: yellowHeader,
-              ),
+              decoration: const BoxDecoration(color: yellowHeader),
               child: SafeArea(
                 child: Stack(
                   children: [
@@ -124,7 +122,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       left: 10,
                       top: 10,
                       child: IconButton(
-                        icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                        icon: const Icon(
+                          Icons.arrow_back_ios,
+                          color: Colors.white,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
@@ -153,7 +154,8 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Welcome",
+                  const Text(
+                    "Welcome",
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -163,12 +165,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 10),
                   const Text(
                     "Chào mừng bạn đến với thế giới đồ ăn nhanh! Đăng nhập ngay để không bỏ lỡ những ưu đãi cực 'hời' dành riêng cho bạn hôm nay.",
-                    style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.5),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 30),
 
                   // INPUT USERNAME
-                  const Text("Username", style: TextStyle(fontWeight: FontWeight.bold, color: textDark)),
+                  const Text(
+                    "Username",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: textDark,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _usernameController,
@@ -180,14 +192,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(15),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 20),
 
                   // INPUT PASSWORD
-                  const Text("Password", style: TextStyle(fontWeight: FontWeight.bold, color: textDark)),
+                  const Text(
+                    "Password",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: textDark,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _passwordController,
@@ -200,10 +221,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(15),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
                           color: primaryOrange,
                         ),
                         onPressed: () {
@@ -220,11 +246,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPassScreen()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ForgotPassScreen(),
+                          ),
+                        );
                       },
                       child: const Text(
                         "Forget Password",
-                        style: TextStyle(color: primaryOrange, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: primaryOrange,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -248,7 +282,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                               "Đăng Nhập",
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                     ),
                   ),
@@ -256,16 +294,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 10),
 
                   // SIGN UP LINK
-                  const Center(child: Text("or sign up with", style: TextStyle(color: Colors.grey))),
+                  const Center(
+                    child: Text(
+                      "or sign up with",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
                   const SizedBox(height: 10),
+
 
                   // Social Icons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildSocialButton("assets/google_Icon.jpg", Colors.white),
+                      _buildSocialButton(
+                        "assets/google_Icon.jpg",
+                        Colors.white,
+                      ),
                       const SizedBox(width: 20),
-                      _buildSocialButton("assets/facebook_Icon.jpg", Colors.white),
+                      _buildSocialButton(
+                        "assets/facebook_Icon.jpg",
+                        Colors.white,
+                      ),
                     ],
                   ),
 
@@ -275,15 +325,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don't have an account? ", style: TextStyle(color: Colors.grey)),
+                      const Text(
+                        "Don't have an account? ",
+                        style: TextStyle(color: Colors.grey),
+                      ),
                       GestureDetector(
                         onTap: () {
                           // Điều hướng sang màn hình Đăng ký
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => RegisterScreen()));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RegisterScreen(),
+                            ),
+                          );
                         },
                         child: const Text(
                           "Sign Up",
-                          style: TextStyle(color: primaryOrange, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: primaryOrange,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -305,7 +366,10 @@ class _LoginScreenState extends State<LoginScreen> {
         color: bgColor.withOpacity(0.2),
         shape: BoxShape.circle,
       ),
-      child: Padding(padding: EdgeInsets.all(10), child: Image.asset(assetName)),
+      child: Padding(
+        padding: EdgeInsets.all(10),
+        child: Image.asset(assetName),
+      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 class OrderHelper {
   // Map trạng thái từ Database sang Tiếng Việt hiển thị
   static String getStatusText(String status) {
@@ -18,19 +19,18 @@ class OrderHelper {
     }
   }
 
-  // Map trạng thái sang Màu sắc (giống Figma)
   static Color getStatusColor(String status) {
     switch (status) {
       case 'PENDING':
-        return Colors.orange; // Màu cam cho chờ đợi
+        return Colors.orange;
       case 'PROCESSING':
-        return Colors.blue;   // Màu xanh dương cho xử lý
+        return Colors.blue;
       case 'SHIPPED':
-        return Colors.purple; // Màu tím cho đang giao
+        return Colors.purple;
       case 'DELIVERED':
-        return Colors.green;  // Màu xanh lá cho thành công
+        return Colors.green;
       case 'CANCELLED':
-        return Colors.red;    // Màu đỏ cho hủy
+        return Colors.red;
       default:
         return Colors.grey;
     }
