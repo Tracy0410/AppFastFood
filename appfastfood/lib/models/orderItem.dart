@@ -4,7 +4,7 @@ class OrderItem {
   final String image;
   final double price;
   final int quantity;
-  final bool isRated; // <--- Thêm dòng này
+  final bool isRated;
 
   OrderItem({
     required this.productId,
@@ -12,18 +12,16 @@ class OrderItem {
     required this.image,
     required this.price,
     required this.quantity,
-    this.isRated = false, // <--- Mặc định là false
+    this.isRated = false,
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
       productId: json['product_id'] ?? 0,
       foodName: json['food_name'] ?? '',
-      image: json['image_url'] ?? '', // Kiểm tra lại key JSON của sếp
+      image: json['image_url'] ?? '',
       price: double.tryParse(json['price'].toString()) ?? 0.0,
       quantity: json['quantity'] ?? 1,
-      // API CẦN TRẢ VỀ TRƯỜNG 'is_rated' (0 hoặc 1, true hoặc false)
-      // Nếu API chưa có thì sếp phải thêm vào SQL query ở backend nhé
       isRated: (json['is_rated'] == 1 || json['is_rated'] == true),
     );
   }

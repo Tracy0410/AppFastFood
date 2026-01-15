@@ -31,7 +31,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isLoading = true;
 
   Address? _currentAddress;
-  Voucher? _selectedPromotion; // Lưu object Voucher đã chọn
+  Voucher? _selectedPromotion;
   String _paymentMethod = "COD";
 
   int promotionId = 0;
@@ -49,21 +49,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
-  // --- 2. HÀM CHỌN VOUCHER (MỚI THÊM) ---
   void _onSelectVoucher() async {
     List<CartItem> tempCartItems = widget.inputItems.map((item) {
       return CartItem(
-        cartId: 0, // Không quan trọng
+        cartId: 0,
         productId: item.productId,
-        categoryId: item.categoryId, // QUAN TRỌNG: Phải có trường này
-        name: "", // Màn hình check voucher không cần tên, chỉ cần ID để check
+        categoryId: item.categoryId,
+        name: "",
         price: 0,
         imageUrl: "",
         quantity: item.quantity,
         note: item.note,
       );
     }).toList();
-    // Mở màn hình PromotionScreen, truyền danh sách món ăn qua để lọc
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -72,14 +70,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       ),
     );
-
-    // Nếu user chọn 1 voucher và quay lại
     if (result != null && result is Voucher) {
       setState(() {
         _selectedPromotion = result;
       });
 
-      // Gọi lại API tính tiền để cập nhật giá giảm
       _fetchPreview();
 
       ScaffoldMessenger.of(
