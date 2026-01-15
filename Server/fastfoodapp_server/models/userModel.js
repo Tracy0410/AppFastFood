@@ -367,8 +367,6 @@ export default class userModel {
     static async calculateOrderRaw(connection, items, promotionId, shippingAddressId) {
         let promotion = null;
         let promotionDetails = [];
-
-        // 1. Lấy thông tin Voucher (Nếu có)
         if (promotionId) {
             const [promos] = await connection.execute(
                 `SELECT * FROM promotions WHERE promotion_id = ? AND status = 1 AND start_date <= NOW() AND end_date >= NOW()`,
@@ -383,8 +381,6 @@ export default class userModel {
                 promotionDetails = details;
             }
         }
-
-        // 2. Tính toán từng món hàng
         let subtotal = 0;
         let totalDiscountAmount = 0;
         const calculatedItems = [];
@@ -402,27 +398,19 @@ export default class userModel {
             const unitPrice = parseFloat(product.price);
             const quantity = item.quantity;
             const lineTotalOrigin = unitPrice * quantity;
-
             subtotal += lineTotalOrigin;
-
-            // Logic tính giảm giá
             let discountForThisItem = 0;
             let appliedDetailId = null;
-
             if (promotion) {
                 let matchedDetail = promotionDetails.find(d => d.product_id == product.product_id);
                 if (!matchedDetail) matchedDetail = promotionDetails.find(d => d.category_id == product.category_id);
-
-                // Logic: Có detail khớp HOẶC Voucher áp dụng toàn bộ (không có detail con)
                 if (matchedDetail || promotionDetails.length === 0) {
                     const percent = parseFloat(promotion.discount_percent);
                     discountForThisItem = (lineTotalOrigin * percent) / 100;
                     if (matchedDetail) appliedDetailId = matchedDetail.promotion_detail_id;
                 }
             }
-
             totalDiscountAmount += discountForThisItem;
-
             calculatedItems.push({
                 product_id: product.product_id,
                 name: product.name,
@@ -439,7 +427,6 @@ export default class userModel {
         const taxFee = taxableAmount * taxRate;
         let totalAmount = taxableAmount + taxFee + shippingFee;
         if (totalAmount < 0) totalAmount = 0;
-
         return {
             subtotal,
             totalDiscountAmount,
@@ -652,10 +639,7 @@ export default class userModel {
                 LEFT JOIN Addresses a ON o.shipping_address_id = a.address_id
                 WHERE 1=1
             `;
-                
                 const params = [];
-    
-                // Logic lọc động ở đây
                 if (status && status !== 'ALL' && status.trim() !== '') {
                     sql += ` AND o.order_status = ?`;
                     params.push(status.trim());
@@ -664,13 +648,12 @@ export default class userModel {
                 sql += ` ORDER BY o.created_at DESC`;
     
                 const [rows] = await execute(sql, params);
+                console.log(rows);
                 return rows;
             } catch (error) {
                 throw new Error('Get all orders failed: ' + error.message);
             }
         }
-    
-        // 2. Lấy đơn hàng theo User ID (Admin)
         static async getOrdersByUserId(userId) {
             const sql = `
                 SELECT 

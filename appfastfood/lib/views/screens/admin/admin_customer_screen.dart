@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:appfastfood/service/api_service.dart';
 import '../../widget/admin_side_menu.dart';
+import 'admin_order_detail_screen.dart'; // Thêm import này
 
 class AdminCustomerScreen extends StatefulWidget {
   const AdminCustomerScreen({super.key});
@@ -25,10 +26,8 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      // Lấy tất cả đơn hàng để trích xuất thông tin khách hàng
       final orders = await ApiService().getAdminOrders('ALL');
       
-      // Trích xuất thông tin khách hàng từ danh sách đơn
       final Map<int, Map<String, dynamic>> customerMap = {};
       
       for (var order in orders) {
@@ -85,7 +84,29 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
   }
 
   List<dynamic> _getCustomerOrders(int userId) {
-    return _orders.where((order) => order['user_id'] == userId).toList();
+    // Sắp xếp đơn hàng theo thời gian mới nhất
+    final customerOrders = _orders.where((order) => order['user_id'] == userId).toList();
+    customerOrders.sort((a, b) {
+      final dateA = DateTime.parse(a['created_at'] ?? '1970-01-01');
+      final dateB = DateTime.parse(b['created_at'] ?? '1970-01-01');
+      return dateB.compareTo(dateA); // Sắp xếp giảm dần (mới nhất lên đầu)
+    });
+    return customerOrders;
+  }
+
+  void _viewOrderDetails(Map<String, dynamic> order) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AdminOrderDetailScreen(
+          order: order,
+          onStatusUpdated: () {
+            // Khi trạng thái đơn hàng thay đổi, load lại dữ liệu
+            _loadData();
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -239,36 +260,129 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                                         ),
                                         const SizedBox(height: 15),
                                         if (customerOrders.isNotEmpty) ...[
-                                          const Text(
-                                            "📋 Đơn hàng gần nhất",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Text(
+                                                "📋 Tất cả đơn hàng",
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                "(${customerOrders.length} đơn)",
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                           const SizedBox(height: 8),
-                                          ...customerOrders.take(3).map((order) => ListTile(
-                                            dense: true,
-                                            contentPadding: EdgeInsets.zero,
-                                            leading: const Icon(Icons.receipt, size: 16),
-                                            title: Text(
-                                              "Đơn #${order['order_id']}",
-                                              style: const TextStyle(fontSize: 14),
+                                          // Container với chiều cao cố định để cuộn
+                                          Container(
+                                            height: customerOrders.length <= 3 
+                                                ? customerOrders.length * 60.0 // Chiều cao tự động nếu ít
+                                                : 200.0, // Chiều cao cố định nếu nhiều
+                                            decoration: BoxDecoration(
+                                              border: Border.all(color: Colors.grey.shade200),
+                                              borderRadius: BorderRadius.circular(8),
                                             ),
-                                            subtitle: Text(
-                                              fmt.format(safeParseDouble(order['total_amount'])),
-                                              style: const TextStyle(fontSize: 12),
+                                            child: ListView.builder(
+                                              physics: const AlwaysScrollableScrollPhysics(),
+                                              shrinkWrap: true,
+                                              itemCount: customerOrders.length,
+                                              itemBuilder: (context, orderIndex) {
+                                                final order = customerOrders[orderIndex];
+                                                final orderDate = DateTime.parse(order['created_at'] ?? DateTime.now().toString());
+                                                final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+                                                
+                                                return InkWell(
+                                                  onTap: () {
+                                                    _viewOrderDetails(order);
+                                                  },
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      border: orderIndex < customerOrders.length - 1
+                                                          ?  Border(bottom: BorderSide(color: Colors.grey.shade200))
+                                                          : null,
+                                                    ),
+                                                    child: ListTile(
+                                                      dense: true,
+                                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                      leading: Container(
+                                                        width: 30,
+                                                        height: 30,
+                                                        decoration: BoxDecoration(
+                                                          color: _getStatusColor(order['order_status']).withOpacity(0.1),
+                                                          borderRadius: BorderRadius.circular(6),
+                                                        ),
+                                                        alignment: Alignment.center,
+                                                        child: Icon(
+                                                          _getStatusIcon(order['order_status']),
+                                                          size: 16,
+                                                          color: _getStatusColor(order['order_status']),
+                                                        ),
+                                                      ),
+                                                      title: Text(
+                                                        "Đơn #${order['order_id']}",
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                      subtitle: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            dateFormat.format(orderDate),
+                                                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                                          ),
+                                                          const SizedBox(height: 2),
+                                                          Text(
+                                                            fmt.format(safeParseDouble(order['total_amount'])),
+                                                            style: const TextStyle(
+                                                              fontSize: 13,
+                                                              fontWeight: FontWeight.bold,
+                                                              color: Colors.red,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      trailing: Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                        decoration: BoxDecoration(
+                                                          color: _getStatusColor(order['order_status']).withOpacity(0.1),
+                                                          borderRadius: BorderRadius.circular(12),
+                                                        ),
+                                                        child: Text(
+                                                          _getStatusText(order['order_status']),
+                                                          style: TextStyle(
+                                                            fontSize: 10,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: _getStatusColor(order['order_status']),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
                                             ),
-                                            trailing: Chip(
-                                              label: Text(
-                                                _getStatusText(order['order_status']),
-                                                style: const TextStyle(fontSize: 10),
+                                          ),
+                                        ] else ...[
+                                          const Padding(
+                                            padding: EdgeInsets.symmetric(vertical: 16),
+                                            child: Text(
+                                              "Khách hàng chưa có đơn hàng nào",
+                                              style: TextStyle(
+                                                color: Colors.grey,
+                                                fontStyle: FontStyle.italic,
                                               ),
-                                              backgroundColor: _getStatusColor(order['order_status'])
-                                                  .withOpacity(0.1),
                                             ),
-                                          )),
+                                          ),
                                         ],
-                                        const SizedBox(height: 10),
+                                        const SizedBox(height: 15),
                                         Row(
                                           children: [
                                             Expanded(
@@ -276,7 +390,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                                                 icon: const Icon(Icons.email, size: 18),
                                                 label: const Text("Gửi email"),
                                                 onPressed: () {
-                                                  // TODO: Gửi email cho khách
+                                                  _sendEmail(customer['email']);
                                                 },
                                               ),
                                             ),
@@ -286,7 +400,7 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
                                                 icon: const Icon(Icons.phone, size: 18),
                                                 label: const Text("Gọi điện"),
                                                 onPressed: () {
-                                                  // TODO: Gọi điện cho khách
+                                                  _makePhoneCall(customer['phone']);
                                                 },
                                               ),
                                             ),
@@ -338,5 +452,26 @@ class _AdminCustomerScreenState extends State<AdminCustomerScreen> {
       case 'CANCELLED': return Colors.red;
       default: return Colors.grey;
     }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'PENDING': return Icons.pending;
+      case 'PROCESSING': return Icons.local_shipping;
+      case 'SHIPPED': return Icons.delivery_dining;
+      case 'DELIVERED': return Icons.check_circle;
+      case 'CANCELLED': return Icons.cancel;
+      default: return Icons.question_mark;
+    }
+  }
+
+  void _sendEmail(String email) {
+    // TODO: Triển khai chức năng gửi email
+    print("Gửi email đến: $email");
+  }
+
+  void _makePhoneCall(String phone) {
+    // TODO: Triển khai chức năng gọi điện
+    print("Gọi điện đến: $phone");
   }
 }

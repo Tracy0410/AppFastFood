@@ -4,6 +4,19 @@ import 'package:appfastfood/service/api_service.dart';
 import '../../widget/admin_side_menu.dart';
 import 'admin_order_screen.dart';
 
+// Hàm helper để parse giá trị an toàn từ String/num sang double
+double safeParseDouble(dynamic value) {
+  if (value == null) return 0.0;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is String) {
+    // Xử lý nếu có dấu chấm/thập phân
+    String cleaned = value.replaceAll(RegExp(r'[^0-9.-]'), '');
+    return double.tryParse(cleaned) ?? 0.0;
+  }
+  return 0.0;
+}
+
 class AdminHomePageScreen extends StatefulWidget {
   const AdminHomePageScreen({super.key});
 
@@ -12,17 +25,6 @@ class AdminHomePageScreen extends StatefulWidget {
 }
 
 class _AdminHomePageScreenState extends State<AdminHomePageScreen> {
-  double safeParseDouble(dynamic value) {
-    if (value == null) return 0.0;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) {
-      // Xử lý nếu có dấu chấm/thập phân
-      String cleaned = value.replaceAll(RegExp(r'[^0-9.-]'), '');
-      return double.tryParse(cleaned) ?? 0.0;
-    }
-    return 0.0;
-  }
   // Biến state để lưu thống kê
   Map<String, dynamic> stats = {'revenue': 0, 'total_orders': 0};
   
@@ -85,6 +87,8 @@ class _AdminHomePageScreenState extends State<AdminHomePageScreen> {
           "Yummy Quick Admin",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        // ĐÃ XÓA nút back ở đây
+        automaticallyImplyLeading: false, // Ngăn Flutter tự động thêm nút back
         actions: [
           Builder(
             builder: (context) => IconButton(

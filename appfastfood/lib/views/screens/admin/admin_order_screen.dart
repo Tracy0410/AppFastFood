@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:appfastfood/service/api_service.dart'; // Đảm bảo đúng đường dẫn
 import 'package:intl/intl.dart';
@@ -85,7 +84,7 @@ class _AdminOrderScreenState extends State<AdminOrderScreen>
             onSelected: _updateStatusFromFilter,
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'PENDING', child: Text("Mới đặt")),
-              const PopupMenuItem(value: 'PROCESSING', child: Text("Đang chế biến")),
+              const PopupMenuItem(value: 'PROCESSING', child: Text("Đang xử lý")),
               const PopupMenuItem(value: 'SHIPPED', child: Text("Đang giao hàng")),
               const PopupMenuItem(value: 'DELIVERED', child: Text("Hoàn thành")),
               const PopupMenuItem(value: 'CANCELLED', child: Text("Đã hủy")),

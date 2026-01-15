@@ -14,7 +14,7 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://10.13.89.3:8001'; //máy thật
+  static const String baseUrl = 'http://127.0.0.1:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
   static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
@@ -1137,5 +1137,72 @@ class ApiService {
       return double.tryParse(cleaned) ?? 0.0;
     }
     return 0.0;
+  }
+
+  Future<bool> updatePaymentStatus(dynamic orderId, String status) async {
+    try {
+      final token = await StorageHelper.getToken();
+      if (token == null) {
+        print("❌ Token is null, cannot update payment status");
+        return false;
+      }
+
+      // Convert orderId to int để đảm bảo đúng kiểu
+      int id;
+      if (orderId is int) {
+        id = orderId;
+      } else if (orderId is String) {
+        id = int.tryParse(orderId) ?? 0;
+      } else {
+        id = 0;
+      }
+
+      if (id == 0) {
+        print("❌ Invalid orderId: $orderId");
+        return false;
+      }
+
+      final url = Uri.parse('$urlEdit/api/admin/orders/update-payment-status');
+
+      print("👉 [DEBUG] URL: $url");
+      print("👉 [DEBUG] Updating payment status for order #$id to $status");
+      print("👉 [DEBUG] Token exists: ${token.isNotEmpty}");
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'order_id': id, 'payment_status': status}),
+      );
+
+      print("👉 [DEBUG] Status Code: ${response.statusCode}");
+      print("👉 [DEBUG] Response Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        try {
+          final data = jsonDecode(response.body);
+          print("👉 [DEBUG] Parsed Data: $data");
+
+          if (data['success'] == true) {
+            print("✅ Payment status updated successfully");
+            return true;
+          } else {
+            print("❌ API returned error: ${data['message'] ?? 'No message'}");
+            return false;
+          }
+        } catch (e) {
+          print("❌ Error parsing response: $e");
+          return false;
+        }
+      } else {
+        print("❌ Server error: ${response.statusCode} - ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Exception updating payment status: $e");
+      return false;
+    }
   }
 }

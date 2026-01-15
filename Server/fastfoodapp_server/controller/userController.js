@@ -768,7 +768,6 @@ export default class userController {
         try {
             const { product_id,category_id } = req.body; 
             
-            // items gửi lên từ Flutter: [{product_id: 1, category_id: 2}, ...]
             const promotions = await userModel.getApplicablePromotions(product_id,category_id);
             console.log(promotions);
             res.status(200).json({
