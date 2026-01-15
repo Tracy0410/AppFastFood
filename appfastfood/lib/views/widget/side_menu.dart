@@ -45,7 +45,7 @@ class _SideMenuState extends State<SideMenu> {
 
           _userName = currentUser.username;
           _userEmail = currentUser.email;
-          _avatarUrl = currentUser.image; 
+          _avatarUrl = currentUser.image;
         } catch (e) {
           print("Lỗi parse user data: $e");
         }
@@ -83,7 +83,9 @@ class _SideMenuState extends State<SideMenu> {
 
   @override
   Widget build(BuildContext context) {
-    ImageProvider? avatarImage = _isLoggedIn ? _getAvatarProvider(_avatarUrl) : null;
+    ImageProvider? avatarImage = _isLoggedIn
+        ? _getAvatarProvider(_avatarUrl)
+        : null;
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.75,
       shape: const RoundedRectangleBorder(
@@ -154,22 +156,25 @@ class _SideMenuState extends State<SideMenu> {
 
               // B. DANH SÁCH MENU
               if (_isLoggedIn) ...[
-                
                 _buildMenuItem(Icons.person_outline, "Hồ sơ của tôi", () {
-                   Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
-                }),
-                _buildMenuItem(
-                  Icons.location_on_outlined,
-                  "Theo Dõi Đơn Hàng",
-                  () {},
-                ),
-                _buildMenuItem(Icons.credit_card, "Phương Thức Thanh Toán", () {}),
-                _buildMenuItem(Icons.phone_in_talk_outlined, "Liên Hệ Với Cửa Hàng", () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ContactScreen()),
+                    MaterialPageRoute(builder: (context) => ProfileScreen()),
                   );
                 }),
+
+                _buildMenuItem(
+                  Icons.phone_in_talk_outlined,
+                  "Liên Hệ Với Cửa Hàng",
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ContactScreen(),
+                      ),
+                    );
+                  },
+                ),
               ] else ...[
                 _buildMenuItem(Icons.login, "Đăng Nhập / Đăng Ký", () {
                   Navigator.pop(context);
@@ -182,16 +187,20 @@ class _SideMenuState extends State<SideMenu> {
                 }),
               ],
 
-              
               _buildMenuItem(Icons.chat_bubble_outline, "Trợ Giúp", () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SupportScreen()),
-                    );
-                  }),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SupportScreen(),
+                  ),
+                );
+              }),
               _buildMenuItem(Icons.settings_outlined, "Cài Đặt", () {
-                Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const SettingScreen())
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingScreen(),
+                  ),
                 );
               }),
               const Spacer(),
@@ -202,10 +211,14 @@ class _SideMenuState extends State<SideMenu> {
                   showModalBottomSheet(
                     context: context,
                     backgroundColor: Colors.transparent, // Để hiển thị bo góc
-                    isScrollControlled: true, // Cho phép tùy chỉnh chiều cao tốt hơn
+                    isScrollControlled:
+                        true, // Cho phép tùy chỉnh chiều cao tốt hơn
                     builder: (context) {
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 30,
+                        ),
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.vertical(
@@ -213,7 +226,8 @@ class _SideMenuState extends State<SideMenu> {
                           ),
                         ),
                         child: Column(
-                          mainAxisSize: MainAxisSize.min, // Chỉ chiếm chiều cao cần thiết
+                          mainAxisSize:
+                              MainAxisSize.min, // Chỉ chiếm chiều cao cần thiết
                           children: [
                             const Text(
                               "Bạn Có Chắc Chắn Muốn\nĐăng Xuất Không?",
@@ -236,7 +250,9 @@ class _SideMenuState extends State<SideMenu> {
                                       backgroundColor: const Color(0xFFFFE6DE),
                                       foregroundColor: AppColors.primaryOrange,
                                       elevation: 0,
-                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 15,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(30),
                                       ),
@@ -262,7 +278,9 @@ class _SideMenuState extends State<SideMenu> {
                                       backgroundColor: AppColors.primaryOrange,
                                       foregroundColor: Colors.white,
                                       elevation: 0,
-                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 15,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(30),
                                       ),

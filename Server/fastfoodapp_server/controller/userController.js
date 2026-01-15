@@ -25,9 +25,9 @@ const transporter = nodemailer.createTransport({
 
 const vnp_Config = {
     tmnCode: "I49MR19A",
-    hashSecret: "1VOXW52GV9VU09AUCYW3O4IHCJHWQBKT",
+    hashSecret: "E0QDOWJ5E0WTRMNS9X1JC0EH1XTDS8IY",
     url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
-    returnUrl: "http://10.13.89.3:8001/api/payment/vnpay_return"
+    returnUrl: "http://192.168.30.20:8001/api/payment/vnpay_return"
 }
 
 export default class userController {
@@ -735,7 +735,7 @@ export default class userController {
                     req.connection.remoteAddress ||
                     req.socket.remoteAddress ||
                     req.connection.socket.remoteAddress || 
-                    '10.13.89.3';
+                    '192.168.30.20';
                 // 3. Tạo URL thanh toán
                 const paymentUrl = createVnpayUrl({
                     orderId: result.order_id,

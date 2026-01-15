@@ -14,7 +14,7 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8001'; //máy thật
+  static const String baseUrl = 'http://192.168.30.20:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
   static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
