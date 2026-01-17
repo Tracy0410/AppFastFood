@@ -5,10 +5,12 @@ class CustomTopBar extends StatelessWidget {
   final bool isHome;
   final TextEditingController? searchController;
   final Function(String)? onSearchChanged;
-  final VoidCallback? onFilterTap;
 
+  final VoidCallback? onFilterTap;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onProfileTap;
+
+  final int notificationCount;
 
   const CustomTopBar({
     super.key,
@@ -18,6 +20,7 @@ class CustomTopBar extends StatelessWidget {
     this.onFilterTap,
     this.onNotificationTap,
     this.onProfileTap,
+    this.notificationCount = 0,
   });
 
   @override
@@ -91,8 +94,40 @@ class CustomTopBar extends StatelessWidget {
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: onNotificationTap,
-                    child: _buildIcon(Icons.notifications_none),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        _buildIcon(Icons.notifications_none),
+                        if (notificationCount > 0)
+                          Positioned(
+                            right: -2,
+                            top: -2,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 18,
+                                minHeight: 18,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  notificationCount > 99 ? '99+' : '$notificationCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                      ],
+                    ),
                   ),
+
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: onProfileTap,

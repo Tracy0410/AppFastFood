@@ -6,24 +6,21 @@ class NotificationHelper {
   factory NotificationHelper() => _instance;
   NotificationHelper._internal();
 
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+  static const String _keyDeleted = 'deleted_notifications';
 
   Future<void> init() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
+    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
 
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   Future<void> requestPermission() async {
     await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
   }
 
@@ -34,7 +31,6 @@ class NotificationHelper {
     required String body,
     required String type, // 'order', 'promotion', 'payment'
   }) async {
-    
     final prefs = await SharedPreferences.getInstance();
     
     // Mapping key
@@ -57,8 +53,7 @@ class NotificationHelper {
       showWhen: true,
     );
 
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await flutterLocalNotificationsPlugin.show(
       id,
@@ -66,5 +61,30 @@ class NotificationHelper {
       body,
       platformChannelSpecifics,
     );
+  }
+
+  // Tạo ID duy nhất
+  static String generateId(String type, int id, {String? status}) {
+    if (status != null) {
+      return '${type}_${id}_$status';
+    }
+    return '${type}_$id';
+  }
+
+  // Lấy danh sách ID đã xóa từ SharedPreferences
+  Future<List<String>> getDeletedIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_keyDeleted) ?? [];
+  }
+
+  // Đánh dấu một thông báo là đã xóa
+  Future<void> markAsDeleted(String uniqueId) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> deleted = prefs.getStringList(_keyDeleted) ?? [];
+    
+    if (!deleted.contains(uniqueId)) {
+      deleted.add(uniqueId);
+      await prefs.setStringList(_keyDeleted, deleted);
+    }
   }
 }

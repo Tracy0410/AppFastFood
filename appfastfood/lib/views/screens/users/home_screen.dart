@@ -39,6 +39,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
   Widget _currentEndDrawer = const SideMenu();
 
   Timer? _notificationTimer;
+  int _notificationCount = 0;
 
   List<CategoryItem> _filterCategories = [];
 
@@ -59,12 +60,44 @@ class _HomePageScreenState extends State<HomePageScreen> {
     NotificationHelper().init(); 
     NotificationHelper().requestPermission();
     _startBackgroundCheck();
+
+    _updateNotificationCount();
   }
 
   @override
   void dispose() {
     _notificationTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _updateNotificationCount() async {
+    try {
+      final data = await _apiService.getNotificationSync();
+      final deletedIds = await NotificationHelper().getDeletedIds();
+      
+      int count = 0;
+
+      // Đếm Order
+      if (data['orders'] != null) {
+        for (var o in data['orders']) {
+          String uid = NotificationHelper.generateId('ORDER', o['order_id'], status: o['order_status']);
+          if (!deletedIds.contains(uid)) count++;
+        }
+      }
+
+      // Đếm Promotion
+      if (data['promotions'] != null) {
+        count += (data['promotions'] as List).length;
+      }
+
+      if (mounted) {
+        setState(() {
+          _notificationCount = count;
+        });
+      }
+    } catch (e) {
+      print("Lỗi đếm thông báo: $e");
+    }
   }
 
   void _startBackgroundCheck() {
@@ -198,9 +231,14 @@ class _HomePageScreenState extends State<HomePageScreen> {
     setState(() {
       _currentEndDrawer = NotificationSide(
         onUsePromo: _handleApplyPromo,
+        onNotificationChanged: () {
+           _updateNotificationCount();
+        },
       ); 
     });
-    _scaffoldKey.currentState?.openEndDrawer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scaffoldKey.currentState?.openEndDrawer();
+    });
   }
 
   // HÀM MỞ PROFILE
@@ -258,6 +296,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
             onNotificationTap: _openNotificationDrawer,
             onProfileTap: _openProfileDrawer,
+            notificationCount: _notificationCount,
           ),
 
           //NỘI DUNG THAY ĐỔI
@@ -283,11 +322,12 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
   Future<void> _checkOrderUpdates() async {
     try {
+      await _updateNotificationCount();
+
       final data = await _apiService.getNotificationSync();
       if (data.isEmpty || data['orders'] == null) return;
 
       final prefs = await SharedPreferences.getInstance();
-      
       List orders = data['orders'];
 
       for (var order in orders) {
@@ -352,7 +392,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
        if (mounted) {
          setState(() {
            _homeDisplayProducts = results;
-           
            _productsFuture = Future.value(results);
          });
          

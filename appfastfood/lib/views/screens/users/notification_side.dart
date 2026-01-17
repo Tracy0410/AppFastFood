@@ -1,11 +1,17 @@
 import 'package:appfastfood/service/api_service.dart';
+import 'package:appfastfood/utils/notification_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class NotificationSide extends StatefulWidget {
   final Function(int promotionId, String code)? onUsePromo;
+  final VoidCallback? onNotificationChanged;
 
-  const NotificationSide({Key? key, this.onUsePromo}) : super(key: key);
+  const NotificationSide({
+    Key? key, 
+    this.onUsePromo, 
+    this.onNotificationChanged
+  }) : super(key: key);
 
   @override
   State<NotificationSide> createState() => _NotificationSideState();
@@ -24,6 +30,7 @@ class _NotificationSideState extends State<NotificationSide> {
 
   Future<void> _fetchNotifications() async {
     final data = await _apiService.getNotificationSync();
+    final deletedIds = await NotificationHelper().getDeletedIds();
     
     if (!mounted) return;
 
@@ -31,6 +38,11 @@ class _NotificationSideState extends State<NotificationSide> {
 
     if (data['orders'] != null) {
       for (var order in data['orders']) {
+        int id = order['order_id'];
+        String status = order['order_status'];
+        String uniqueId = NotificationHelper.generateId('ORDER', id, status: status);
+        if (deletedIds.contains(uniqueId)) continue;
+
         String title = "Đơn hàng #${order['order_id']}";
         String statusMsg = "";
         Color statusColor = Colors.blue;
@@ -61,34 +73,43 @@ class _NotificationSideState extends State<NotificationSide> {
         }
 
         tempList.add({
+          'uniqueId': uniqueId,
           'type': 'ORDER',
-          'id': order['order_id'],
+          'id': id,
           'title': title,
           'message': statusMsg,
           'detail': order['items_summary'] ?? "Chi tiết đơn hàng...",
           'time': order['created_at'],
           'color': statusColor,
-          'isNew': true,
+          'code': '',
         });
       }
     }
 
     if (data['promotions'] != null) {
       for (var promo in data['promotions']) {
+        int id = promo['promotion_id'];
+        String uniqueId = NotificationHelper.generateId('PROMO', id);
+
         tempList.add({
+          'uniqueId': uniqueId,
           'type': 'PROMOTION',
-          'id': promo['promotion_id'],
+          'id': id,
           'title': "HOT: ${promo['name']}",
-          'message': "Nhập mã: ${promo['code']} để giảm ${promo['discount_percent']}%",
+          'message': "Giảm ${promo['discount_percent']}%",
           'code': promo['code'],
-          'raw_name': promo['name'],
-          'detail': promo['description'] ?? "Áp dụng cho các món trong danh mục...",
+          'detail': promo['description'] ?? "Mô tả...",
           'time': promo['start_date'],
           'color': Colors.redAccent,
-          'isNew': false,
         });
       }
     }
+
+    tempList.sort((a, b) {
+      DateTime t1 = DateTime.tryParse(a['time'].toString()) ?? DateTime(2000);
+      DateTime t2 = DateTime.tryParse(b['time'].toString()) ?? DateTime(2000);
+      return t2.compareTo(t1);
+    });
     
     setState(() {
       _notifications = tempList;
@@ -96,10 +117,21 @@ class _NotificationSideState extends State<NotificationSide> {
     });
   }
 
-  void _removeNotification(int index) {
+  void _removeNotification(int index) async {
+    final item = _notifications[index];
+    if (item['type'] == 'PROMOTION') return;
+
+    final String uniqueId = item['uniqueId'];
+
+    await NotificationHelper().markAsDeleted(uniqueId);
+
     setState(() {
       _notifications.removeAt(index);
     });
+
+    if (widget.onNotificationChanged != null) {
+      widget.onNotificationChanged!();
+    }
   }
 
   @override
@@ -109,7 +141,7 @@ class _NotificationSideState extends State<NotificationSide> {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.only(top: 50, left: 20, bottom: 20),
+            padding: const EdgeInsets.only(top: 40, left: 20, bottom: 20),
             color: Colors.redAccent,
             width: double.infinity,
             child: const Text(
@@ -142,41 +174,48 @@ class _NotificationSideState extends State<NotificationSide> {
   }
 
   Widget _buildNotificationCard(Map<String, dynamic> item, int index) {
-    IconData iconData = item['type'] == 'ORDER' ? Icons.fastfood : Icons.local_offer;
+    bool isPromo = item['type'] == 'PROMOTION';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 15),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       child: Stack(
         children: [
           ExpansionTile(
-            leading: CircleAvatar(
-              backgroundColor: item['color'].withOpacity(0.1),
-              child: Icon(iconData, color: item['color']),
+            leading: Icon(
+              isPromo ? Icons.local_offer : Icons.fastfood,
+              color: item['color'],
             ),
-            title: Text(item['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            title: Text(
+              item['title'],
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 5),
-                Text(item['message'], style: TextStyle(color: Colors.grey[700], fontSize: 13)),
-                const SizedBox(height: 5),
-                Text(_formatDate(item['time']), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(item['message']),
+                Text(
+                  _formatDate(item['time']),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
               ],
             ),
             children: [
-              Container(
-                padding: const EdgeInsets.all(15),
-                width: double.infinity,
-                color: Colors.grey[50],
+              Padding(
+                padding: const EdgeInsets.all(12.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Chi tiết:", style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 5),
-                    Text(item['detail']),
+                    Text("Chi tiết: ${item['detail']}"),
+                    if (item['code'] != null && item['code'] != '') 
+                      Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: Text(
+                          "Mã Code: ${item['code']}",
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                        ),
+                      ),
                     
+                    // --- NÚT DÙNG NGAY (GIỮ NGUYÊN) ---
                     if (item['type'] == 'PROMOTION')
                       Padding(
                         padding: const EdgeInsets.only(top: 10),
@@ -201,14 +240,16 @@ class _NotificationSideState extends State<NotificationSide> {
               ),
             ],
           ),
-          Positioned(
-            right: 0,
-            top: 0,
-            child: IconButton(
-              icon: const Icon(Icons.close, size: 18, color: Colors.grey),
-              onPressed: () => _removeNotification(index),
+          // Nút Xóa (X)
+          if (!isPromo) 
+            Positioned(
+              right: 0,
+              top: 0,
+              child: IconButton(
+                icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                onPressed: () => _removeNotification(index),
+              ),
             ),
-          ),
         ],
       ),
     );

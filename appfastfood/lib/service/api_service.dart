@@ -13,7 +13,7 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://10.146.239.37:8001'; //máy thật
+  static const String baseUrl = 'http://192.168.1.12:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
   static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
@@ -1236,21 +1236,6 @@ Future<bool> updatePaymentStatus(int orderId, String status) async {
       print("❌ Token is null, cannot update payment status");
       return false;
     }
-
-    // Convert orderId to int để đảm bảo đúng kiểu
-    // int id;
-    // if (orderId is int) {
-    //   id = orderId;
-    // } else if (orderId is String) {
-    //   id = int.tryParse(orderId) ?? 0;
-    // } else {
-    //   id = 0;
-    // }
-    
-    // if (id == 0) {
-    //   print("❌ Invalid orderId: $orderId");
-    //   return false;
-    // }
 
     final url = Uri.parse('$urlEdit/api/orders/update-payment-status');
     
