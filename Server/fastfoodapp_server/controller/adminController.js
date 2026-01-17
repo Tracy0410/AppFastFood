@@ -1,4 +1,5 @@
 import userModel from '../models/userModel.js'; // Import Model bạn vừa sửa
+import ProductModel from '../models/productsModel.js';
 import { execute } from '../config/db.js'; // Vẫn cần dùng cho hàm updateStatus (nếu chưa đưa vào model)
 
 /**
@@ -147,6 +148,87 @@ export const updatePaymentStatus = async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: "Lỗi Server khi cập nhật trạng thái thanh toán",
+            error: error.message 
+        });
+    }
+};
+
+export const getAdminProducts = async (req, res) => {
+    try {
+        // Lấy tham số từ URL
+        const { status, category_id } = req.query;
+        
+        console.log("👉 Admin fetching products filter:", { status, category_id });
+
+        // Gọi hàm getAdminProducts trong Model (Đã viết ở trên)
+        // Lưu ý: Không truyền req, res vào Model
+        const products = await ProductModel.getAdminProducts({ 
+            status, 
+            categoryId: category_id 
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Lấy danh sách sản phẩm thành công",
+            data: products
+        });
+    } catch (error) {
+        console.error("❌ Error in getAdminProducts:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Lỗi Server khi lấy danh sách sản phẩm",
+            error: error.message 
+        });
+    }
+};
+
+export const updateProduct = async (req, res) => {
+    try {
+        const { product_id, name, description, price, category_id, status, image } = req.body;
+        
+        console.log(`👉 Updating Product #${product_id}`, req.body);
+
+        if (!product_id) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Thiếu product_id" 
+            });
+        }
+
+        let finalImage = req.body.image;
+        if (req.file) {
+            const b64 = Buffer.from(req.file.buffer).toString('base64');
+            const mimeType = req.file.mimetype;
+            finalImage = `data:${mimeType};base64,${b64}`;
+        }
+
+        // Gọi hàm update dynamic từ Model
+        const result = await ProductModel.updateProduct(product_id, {
+            name, 
+            description, 
+            price, 
+            category_id, 
+            status, 
+            image: finalImage
+        });
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy sản phẩm hoặc dữ liệu không thay đổi"
+            });
+        }
+
+        res.status(200).json({ 
+            success: true, 
+            message: "Cập nhật sản phẩm thành công" 
+        });
+
+    } catch (error) {
+        console.error("❌ Error in updateProduct:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Lỗi Server khi cập nhật sản phẩm",
             error: error.message 
         });
     }

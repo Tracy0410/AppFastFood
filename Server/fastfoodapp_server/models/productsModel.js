@@ -82,6 +82,91 @@ class ProductModel {
             return [];
         }
     }
+
+    static async getAdminProducts({ status, categoryId }) {
+        try {
+            let sql = `
+                SELECT p.*, c.name as category_name 
+                FROM Products p 
+                LEFT JOIN Categories c ON p.category_id = c.category_id
+            `;
+            
+            const params = [];
+            const conditions = [];
+
+            // Điều kiện 1: Lọc theo trạng thái (0: Ẩn, 1: Hiện) - Nếu không truyền thì lấy tất cả
+            if (status !== undefined && status !== null && status !== '') {
+                conditions.push("p.status = ?");
+                params.push(status);
+            }
+
+            // Điều kiện 2: Lọc theo danh mục
+            if (categoryId && categoryId !== 'All' && categoryId !== '0') {
+                conditions.push("p.category_id = ?");
+                params.push(categoryId);
+            }
+
+            // Gắn điều kiện vào câu SQL
+            if (conditions.length > 0) {
+                sql += " WHERE " + conditions.join(" AND ");
+            }
+
+            sql += " ORDER BY p.product_id DESC"; // Mới nhất lên đầu
+
+            const [rows] = await execute(sql, params);
+            return rows;
+        } catch (error) {
+            throw new Error('Database Error: ' + error.message);
+        }
+    }
+
+    static async updateProduct(productId, updateData) {
+        try {
+            const fields = [];
+            const values = [];
+
+            // Kiểm tra từng trường, trường nào có dữ liệu mới thêm vào câu lệnh Update
+            if (updateData.name !== undefined) {
+                fields.push('name = ?');
+                values.push(updateData.name);
+            }
+            if (updateData.description !== undefined) {
+                fields.push('description = ?');
+                values.push(updateData.description);
+            }
+            if (updateData.price !== undefined) {
+                fields.push('price = ?');
+                values.push(updateData.price);
+            }
+            if (updateData.category_id !== undefined) {
+                fields.push('category_id = ?');
+                values.push(updateData.category_id);
+            }
+            if (updateData.status !== undefined) { 
+                fields.push('status = ?'); // Cập nhật trạng thái (0 hoặc 1)
+                values.push(updateData.status);
+            }
+            if (updateData.image !== undefined) {
+                fields.push('image_url = ?');
+                values.push(updateData.image);
+            }
+
+            // Nếu không gửi lên trường nào thì báo lỗi hoặc return
+            if (fields.length === 0) {
+                return { affectedRows: 0 };
+            }
+
+            values.push(productId); // Tham số cuối cùng cho WHERE product_id = ?
+            
+            const sql = `UPDATE Products SET ${fields.join(', ')} WHERE product_id = ?`;
+            
+            const [result] = await execute(sql, values);
+            return result;
+
+        } catch (error) {
+            throw new Error('Update failed: ' + error.message);
+        }
+    }
 }
 
 export default ProductModel;
