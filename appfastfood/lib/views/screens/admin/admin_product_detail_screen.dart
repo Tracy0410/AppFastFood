@@ -20,396 +20,229 @@ class AdminProductDetailScreen extends StatefulWidget {
 
 class _AdminProductDetailScreenState extends State<AdminProductDetailScreen> {
   final _formKey = GlobalKey<FormState>();
+  final ApiService _apiService = ApiService();
+
   late TextEditingController _nameController;
-  late TextEditingController _descriptionController;
+  late TextEditingController _descController;
   late TextEditingController _priceController;
   
-  String? _selectedCategory;
+  final Map<String, int> _categories = {
+    'Burger': 1,
+    'Pizza': 2,
+    'Mì Ý': 3,
+    'Cơm': 4,
+    'Gà Rán': 5,
+    'Đồ uống': 6,
+  };
+  
+  String _selectedCategoryName = 'Burger';
   bool _status = true;
-  bool _isLoading = false;
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
-
-  final List<String> _categories = [
-    'Burger',
-    'Pizza',
-    'Đồ uống',
-    'Tráng miệng',
-    'Khai vị',
-    'Combo'
-  ];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.product.name);
-    _descriptionController = TextEditingController(text: widget.product.description);
-    _priceController = TextEditingController(text: widget.product.price.toString());
+    _descController = TextEditingController(text: widget.product.description);
+    _priceController = TextEditingController(text: widget.product.price.toStringAsFixed(0));
+    
     _status = widget.product.status == 1;
-    _selectedCategory = _getCategoryNameFromId(widget.product.categoryId);
-  }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
-    _priceController.dispose();
-    super.dispose();
-  }
-
-  String _getCategoryNameFromId(int? categoryId) {
-    switch (categoryId) {
-      case 1: return 'Burger';
-      case 2: return 'Pizza';
-      case 3: return 'Đồ uống';
-      case 4: return 'Tráng miệng';
-      case 5: return 'Khai vị';
-      case 6: return 'Combo';
-      default: return 'Burger';
-    }
-  }
-
-  int _getCategoryIdFromName(String? categoryName) {
-    switch (categoryName) {
-      case 'Burger': return 1;
-      case 'Pizza': return 2;
-      case 'Đồ uống': return 3;
-      case 'Tráng miệng': return 4;
-      case 'Khai vị': return 5;
-      case 'Combo': return 6;
-      default: return 1;
-    }
+    _selectedCategoryName = _categories.keys.firstWhere(
+      (k) => _categories[k] == widget.product.id, 
+      orElse: () => 'Burger'
+    );
   }
 
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
-    
-    if (pickedFile != null) {
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageFile = File(picked.path);
       });
     }
   }
 
-Future<void> _updateProduct() async {
-  print('Current status: $_status');
-  if (!_formKey.currentState!.validate()) return;
-  
-  setState(() => _isLoading = true);
-  
-  try {
-    Product updatedProduct = Product(
-      id: widget.product.id,
-      name: _nameController.text.trim(),
-      description: _descriptionController.text.trim(),
-      price: double.parse(_priceController.text),
-      imageUrl: widget.product.imageUrl,
-      categoryId: _getCategoryIdFromName(_selectedCategory),
-      categoryName: _selectedCategory!, 
-      status: _status ? 1 : 0,
-      averageRating: widget.product.averageRating,
-      reviewCount: widget.product.reviewCount,
-    );print('Sending status: ${updatedProduct.status}');
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
 
-    // TODO: Gọi API update sản phẩm
-    // Cần tạo hàm updateProduct trong ApiService
-    bool success = await ApiService().updateProduct(updatedProduct, _imageFile);
-    
-    // Tạm thời hiển thị thông báo thành công
-    await Future.delayed(const Duration(seconds: 1));
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✅ Đã lưu thay đổi!'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
+    // Tạo object mới - ĐÃ BỎ average_rating
+    Product updateData = Product(
+      id: widget.product.id,
+      name: _nameController.text,
+      description: _descController.text,
+      price: double.tryParse(_priceController.text) ?? 0,
+      imageUrl: widget.product.imageUrl,
+      categoryId: _categories[_selectedCategoryName] ?? 1,
+      categoryName: _selectedCategoryName,
+      status: _status ? 1 : 0,
+      // average_rating đã được bỏ
     );
+
+    bool success = await _apiService.updateProduct(updateData, _imageFile);
     
-    widget.onUpdated?.call();
-    
-    Navigator.pop(context);
-    
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('❌ Lỗi: $e'),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
+    setState(() => _isLoading = false);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Cập nhật thành công!"), backgroundColor: Colors.green));
+      if (widget.onUpdated != null) widget.onUpdated!();
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lỗi cập nhật sản phẩm"), backgroundColor: Colors.red));
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
+    bool isEditing = widget.product.id != 0;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Chỉ tiết sản phẩm',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: Text(isEditing ? "Sửa món ăn #${widget.product.id}" : "Thêm món mới"),
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        foregroundColor: Colors.black,
+        elevation: 1,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Ảnh sản phẩm
-                    GestureDetector(
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. CHỌN ẢNH
+                  Center(
+                    child: GestureDetector(
                       onTap: _pickImage,
-                      child: Center(
-                        child: Stack(
+                      child: Container(
+                        width: 160, height: 160,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: Colors.grey.shade400),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: _imageFile != null
+                            ? Image.file(_imageFile!, fit: BoxFit.cover)
+                            : (widget.product.imageUrl.isNotEmpty
+                                ? Image.network(widget.product.imageUrl, fit: BoxFit.cover)
+                                : const Icon(Icons.add_a_photo, size: 50, color: Colors.grey)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Center(child: Text("Chạm vào ảnh để thay đổi", style: TextStyle(color: Colors.grey))),
+                  const SizedBox(height: 20),
+
+                  // 2. INPUT FIELDS
+                  _buildTextField("Tên món ăn", _nameController),
+                  const SizedBox(height: 15),
+                  
+                  _buildTextField("Giá tiền (VNĐ)", _priceController, isNumber: true),
+                  const SizedBox(height: 15),
+
+                  Text("Danh mục", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                  const SizedBox(height: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: _selectedCategoryName,
+                        items: _categories.keys.map((String key) {
+                          return DropdownMenuItem(value: key, child: Text(key));
+                        }).toList(),
+                        onChanged: (val) => setState(() => _selectedCategoryName = val!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+
+                  _buildTextField("Mô tả chi tiết", _descController, maxLines: 3),
+                  const SizedBox(height: 20),
+
+                  // 3. TRẠNG THÁI (Ẩn/Hiện)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _status ? Colors.green[50] : Colors.red[50],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _status ? Colors.green : Colors.red),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 150,
-                              height: 150,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(12),
-                                image: _imageFile != null
-                                    ? DecorationImage(
-                                        image: FileImage(_imageFile!),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : (widget.product.imageUrl.isNotEmpty
-                                        ? DecorationImage(
-                                            image: NetworkImage(widget.product.imageUrl),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : null),
-                              ),
-                              child: _imageFile == null && widget.product.imageUrl.isEmpty
-                                  ? const Icon(Icons.fastfood, size: 50, color: Colors.grey)
-                                  : null,
-                            ),
-                            Positioned(
-                              bottom: 8,
-                              right: 8,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Icon(Icons.camera_alt, size: 20),
-                              ),
-                            ),
+                            Text("Trạng thái hiển thị", style: TextStyle(fontWeight: FontWeight.bold, color: _status ? Colors.green : Colors.red)),
+                            Text(_status ? "Sản phẩm đang hiển thị trên App" : "Sản phẩm đang bị ẩn", style: const TextStyle(fontSize: 12, color: Colors.grey)),
                           ],
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Tên món
-                    _buildLabel('Tên món:'),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        hintText: 'Nhập tên món',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Vui lòng nhập tên món';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Mô tả
-                    _buildLabel('Mô tả:'),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _descriptionController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText: 'Nhập mô tả sản phẩm',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Vui lòng nhập mô tả';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Giá
-                    _buildLabel('Giá:'),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _priceController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: 'Nhập giá',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        prefixText: 'đ ',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Vui lòng nhập giá';
-                        }
-                        if (double.tryParse(value) == null) {
-                          return 'Giá không hợp lệ';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Danh mục
-                    _buildLabel('Danh mục:'),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: _selectedCategory,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      items: _categories.map((String category) {
-                        return DropdownMenuItem<String>(
-                          value: category,
-                          child: Text(category),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedCategory = newValue;
-                        });
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Vui lòng chọn danh mục';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 30),
-
-                    // Trạng thái hiển thị
-                    _buildLabel('Trạng thái hiển thị'),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _status ? 'Đang hiển thị' : 'Đang ẩn',
-                            style: TextStyle(
-                              color: _status ? Colors.green : Colors.grey,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Switch(
-                            value: _status,
-                            activeColor: Colors.green,
-                            onChanged: (bool value) {
-                              setState(() {
-                                _status = value;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Nút hành động
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _updateProduct,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.amber,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              'Lưu thay đổi',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              side: const BorderSide(color: Colors.grey),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text(
-                              'Hủy bỏ',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
+                        Switch(
+                          value: _status,
+                          activeColor: Colors.green,
+                          inactiveThumbColor: Colors.red,
+                          onChanged: (val) => setState(() => _status = val),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  // 4. BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFB039),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text("LƯU THAY ĐỔI", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
               ),
             ),
+          ),
+          
+          if (_isLoading)
+            Container(color: Colors.black45, child: const Center(child: CircularProgressIndicator())),
+        ],
+      ),
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Colors.black87,
-      ),
+  Widget _buildTextField(String label, TextEditingController controller, {bool isNumber = false, int maxLines = 1}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700])),
+        const SizedBox(height: 5),
+        TextFormField(
+          controller: controller,
+          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+          maxLines: maxLines,
+          validator: (val) => val == null || val.isEmpty ? "Vui lòng nhập $label" : null,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          ),
+        ),
+      ],
     );
   }
 }

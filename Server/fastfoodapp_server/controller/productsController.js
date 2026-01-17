@@ -77,23 +77,6 @@ class ProductController{
             });
         }
     }
-        static async getAdminProducts(req,res){
-        try{
-            const products = await productsModel.getAlladmin();
-        
-            return res.status(200).json({
-                success: true,
-                message:'get success products list',
-                data: products
-            });
-        }catch(error){
-            console.error(error);
-            return res.status(500).json({
-                success: false,
-                message: 'Error server when get products'
-            });
-        }
-    }
 }
 
 export default ProductController;

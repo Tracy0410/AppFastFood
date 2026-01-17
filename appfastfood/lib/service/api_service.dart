@@ -13,10 +13,10 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://10.198.165.37:8001'; //máy thật
+  static const String baseUrl = 'http://192.168.1.12:8001'; //máy thật
   static const String BaseUrl = 'http://127.0.0.1:8001'; // máy ảo
 
-  static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
+  static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
 
   // Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -863,7 +863,6 @@ class ApiService {
          queryString = "?status=$status";
       }
 
-      // URL ví dụ: http://.../api/admin/orders?status=PENDING
       final url = Uri.parse('$urlEdit/api/orders$queryString');
 
       print("👉 [ADMIN API] Calling: $url"); // Log để debug xem URL đúng chưa
@@ -1180,173 +1179,176 @@ class ApiService {
   }
 
   //cập nhật payment status
-Future<bool> updatePaymentStatus(int orderId, String status) async {
-  try {
-    final token = await StorageHelper.getToken();
-    if (token == null) {
-      print("❌ Token is null, cannot update payment status");
-      return false;
-    }
-
-    // Convert orderId to int để đảm bảo đúng kiểu
-    // int id;
-    // if (orderId is int) {
-    //   id = orderId;
-    // } else if (orderId is String) {
-    //   id = int.tryParse(orderId) ?? 0;
-    // } else {
-    //   id = 0;
-    // }
-    
-    // if (id == 0) {
-    //   print("❌ Invalid orderId: $orderId");
-    //   return false;
-    // }
-
-    final url = Uri.parse('$urlEdit/api/orders/update-payment-status');
-    
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'order_id': orderId,
-        'payment_status': status,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      try {
-        final data = jsonDecode(response.body);
-        print("👉 [DEBUG] Parsed Data: $data");
-        
-        if (data['success'] == true) {
-          print("✅ Payment status updated successfully");
-          return true;
-        } else {
-          print("❌ API returned error: ${data['message'] ?? 'No message'}");
-          return false;
-        }
-      } catch (e) {
-        print("❌ Error parsing response: $e");
-        return false;
-      }
-    } else {
-      print("❌ Server error: ${response.statusCode} - ${response.body}");
-      return false;
-    }
-  } catch (e) {
-    print("❌ Exception updating payment status: $e");
-    return false;
-  }
-}
-Future<List<Product>> getAdminProducts() async {
-  try {
-    final token = await StorageHelper.getToken();
-    // Gọi API lấy list (nếu API này trả về cả sản phẩm ẩn)
-    final response = await http.get(
-      Uri.parse('$urlEdit/api/products'), 
-      // Nếu server yêu cầu token admin mới trả về sp ẩn thì uncomment dòng dưới:
-      // headers: {'Authorization': 'Bearer $token'}, 
-    );
-
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-      if (jsonResponse['success'] == true) {
-        List<dynamic> data = jsonResponse['data'];
-        return data.map((item) => Product.fromJson(item)).toList();
-      }
-    }
-    return [];
-  } catch (e) {
-    print("Lỗi getAdminProducts: $e");
-    return [];
-  }
-}
-
-// 2. Hàm cập nhật sản phẩm (Quan trọng: xử lý status)
-Future<bool> updateProduct(Product product, File? imageFile) async {
+  Future<bool> updatePaymentStatus(int orderId, String status) async {
     try {
       final token = await StorageHelper.getToken();
-      if (token == null) return false;
-
-      // BƯỚC 1: CẬP NHẬT THÔNG TIN CƠ BẢN (Tên, Giá, Ảnh...)
-      var uri = Uri.parse('$urlEdit/api/products/update/${product.id}');
-      var request = http.MultipartRequest('POST', uri);
-      request.headers['Authorization'] = 'Bearer $token';
-
-      request.fields['name'] = product.name;
-      request.fields['description'] = product.description;
-      request.fields['price'] = product.price.toString();
-      
-      // Kiểm tra tên biến trong model của bạn (categoryId hay category_id)
-      request.fields['category_id'] = product.categoryId.toString(); 
-
-      // Gửi ảnh nếu có
-      if (imageFile != null) {
-        var pic = await http.MultipartFile.fromPath(
-          'image', 
-          imageFile.path,
-          contentType: MediaType('image', 'jpeg'), 
-        );
-        request.files.add(pic);
+      if (token == null) {
+        print("❌ Token is null, cannot update payment status");
+        return false;
       }
 
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
+      // Convert orderId to int để đảm bảo đúng kiểu
+      // int id;
+      // if (orderId is int) {
+      //   id = orderId;
+      // } else if (orderId is String) {
+      //   id = int.tryParse(orderId) ?? 0;
+      // } else {
+      //   id = 0;
+      // }
       
-      bool infoUpdated = false;
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) infoUpdated = true;
-      }
+      // if (id == 0) {
+      //   print("❌ Invalid orderId: $orderId");
+      //   return false;
+      // }
 
-      // BƯỚC 2: GỌI RIÊNG API CẬP NHẬT TRẠNG THÁI (Quan trọng)
-      // Dù bước 1 có thành công hay không, ta vẫn cố gắng cập nhật status
+      final url = Uri.parse('$urlEdit/api/orders/update-payment-status');
       
-      final urlStatus = Uri.parse('$urlEdit/api/products/update-status');
-      final responseStatus = await http.post(
-        urlStatus,
+      final response = await http.post(
+        url,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'product_id': product.id,
-          'status': product.status, // 1 hoặc 0
+          'order_id': orderId,
+          'payment_status': status,
         }),
       );
 
-      // Kiểm tra kết quả bước 2
-      bool statusUpdated = responseStatus.statusCode == 200;
-
-      // Trả về true nếu ít nhất một trong hai thao tác thành công
-      return infoUpdated || statusUpdated;
-
+      if (response.statusCode == 200) {
+        try {
+          final data = jsonDecode(response.body);
+          print("👉 [DEBUG] Parsed Data: $data");
+          
+          if (data['success'] == true) {
+            print("✅ Payment status updated successfully");
+            return true;
+          } else {
+            print("❌ API returned error: ${data['message'] ?? 'No message'}");
+            return false;
+          }
+        } catch (e) {
+          print("❌ Error parsing response: $e");
+          return false;
+        }
+      } else {
+        print("❌ Server error: ${response.statusCode} - ${response.body}");
+        return false;
+      }
     } catch (e) {
-      print("❌ Lỗi ngoại lệ updateProduct: $e");
+      print("❌ Exception updating payment status: $e");
       return false;
     }
   }
-// 2. Lấy danh sách danh mục (để hiển thị dropdown)
-Future<List<Map<String, dynamic>>> getCategories() async {
-  try {
-    final response = await http.get(Uri.parse('$urlEdit/api/categories'));
-    
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-      if (jsonResponse['success'] == true) {
-        return List<Map<String, dynamic>>.from(jsonResponse['data']);
+
+  Future<List<Product>> getAdminProducts({String? status, int? categoryId}) async {
+    try {
+      final token = await StorageHelper.getToken();
+      
+      // Tạo query params
+      Map<String, String> queryParams = {};
+      if (status != null && status != 'all') {
+        queryParams['status'] = status == 'active' ? '1' : '0';
       }
+      if (categoryId != null && categoryId != 0) {
+        queryParams['category_id'] = categoryId.toString();
+      }
+
+      final uri = Uri.parse('$urlEdit/api/admin/products')
+          .replace(queryParameters: queryParams);
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        // Kiểm tra cấu trúc trả về của backend (data['data'] hoặc trực tiếp data)
+        final List<dynamic> productList = data['data'] ?? [];
+        return productList.map((json) => Product.fromJson(json)).toList();
+      } else {
+        print("Lỗi lấy sp admin: ${response.statusCode}");
+        return [];
+      }
+    } catch (e) {
+      print("❌ Error getAdminProducts: $e");
+      return [];
     }
-    return [];
-  } catch (e) {
-    print("Lỗi getCategories: $e");
-    return [];
   }
-}
+
+  // 2. Hàm cập nhật sản phẩm (Quan trọng: xử lý status)
+  Future<bool> updateProduct(Product product, File? imageFile) async {
+    try {
+      final token = await StorageHelper.getToken();
+      var uri = Uri.parse('$urlEdit/api/admin/products/update');
+
+      var request = http.MultipartRequest('POST', uri);
+      
+      // Header
+      request.headers['Authorization'] = 'Bearer $token';
+
+      // Các trường text
+      request.fields['product_id'] = product.id.toString();
+      request.fields['name'] = product.name;
+      request.fields['description'] = product.description;
+      request.fields['price'] = product.price.toString();
+      request.fields['category_id'] = product.categoryId.toString();
+      request.fields['status'] = product.status.toString(); // 1 hoặc 0
+
+      // Nếu có ảnh mới thì gửi kèm
+      if (imageFile != null) {
+        var stream = http.ByteStream(imageFile.openRead());
+        var length = await imageFile.length();
+        
+        var multipartFile = http.MultipartFile(
+          'image', // Tên field này phải khớp với upload.single('image') ở backend
+          stream,
+          length,
+          filename: imageFile.path.split('/').last
+        );
+        request.files.add(multipartFile);
+      } else {
+        // Nếu không đổi ảnh, có thể gửi lại link ảnh cũ hoặc backend tự hiểu ko update
+        request.fields['image'] = product.imageUrl;
+      }
+
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        print("Update failed: ${response.statusCode}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Error updateProduct: $e");
+      return false;
+    }
+  }
+
+  // 2. Lấy danh sách danh mục (để hiển thị dropdown)
+  Future<List<Map<String, dynamic>>> getCategories() async {
+    try {
+      final response = await http.get(Uri.parse('$urlEdit/api/categories'));
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+        if (jsonResponse['success'] == true) {
+          return List<Map<String, dynamic>>.from(jsonResponse['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi getCategories: $e");
+      return [];
+    }
+  }
+
   // 3. Lấy thống kê Dashboard (Doanh thu, Số đơn)
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
@@ -1397,42 +1399,5 @@ Future<List<Map<String, dynamic>>> getCategories() async {
     }
     return false;
   }
-  Future<bool> updateProductStatus(int productId, int status) async {
-  try {
-    final token = await StorageHelper.getToken();
-    if (token == null) {
-      print("❌ Token is null");
-      return false;
-    }
-
-    final url = Uri.parse('$urlEdit/api/admin/products/update-status');
-    
-    print("🔄 Gửi yêu cầu cập nhật trạng thái sản phẩm #$productId -> $status");
-    
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'product_id': productId,
-        'status': status,
-      }),
-    );
-
-    print("📥 Response Status: ${response.statusCode}");
-    print("📥 Response Body: ${response.body}");
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['success'] == true;
-    }
-    return false;
-  } catch (e) {
-    print("❌ Lỗi updateProductStatus: $e");
-    return false;
-  }
-}
 }
 
