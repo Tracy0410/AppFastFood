@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../views/screens/admin/admin_order_screen.dart';
 import '../../views/screens/admin/admin_product_screen.dart';
 import '../../views/screens/admin/admin_customer_screen.dart';
-
+import '../screens/users/setting/setting_screen.dart';
 class AdminSideMenu extends StatelessWidget {
   const AdminSideMenu({super.key});
 
@@ -82,6 +82,12 @@ class AdminSideMenu extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [   
+                _buildMenuItem(context, Icons.restaurant, "Trang chủ", () {
+                  Navigator.pop(context); // Đóng Drawer trước
+                  Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const AdminHomePageScreen()),
+                  );
+                  }),
                 _buildMenuItem(context, Icons.restaurant, "Sản phẩm", () {
                   Navigator.pop(context); // Đóng Drawer trước
                   Navigator.push(context,
@@ -109,7 +115,7 @@ class AdminSideMenu extends StatelessWidget {
                 }),
                 _buildMenuItem(context, Icons.settings_outlined, "Cài đặt", () {
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => const AdminHomePageScreen()),
+                    MaterialPageRoute(builder: (context) => const SettingScreen()),
                     (route) => false,
                   );
                 }),

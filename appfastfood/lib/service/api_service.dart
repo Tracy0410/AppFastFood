@@ -13,10 +13,10 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.1.12:8001'; //máy thật
-  static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
+  static const String baseUrl = 'http://10.198.165.37:8001'; //máy thật
+  static const String BaseUrl = 'http://127.0.0.1:8001'; // máy ảo
 
-  static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
+  static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
 
   // Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
