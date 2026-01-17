@@ -151,3 +151,92 @@ export const updatePaymentStatus = async (req, res) => {
         });
     }
 };
+export const updateProductStatus = async (req, res) => {
+  try {
+    const { product_id, status } = req.body;
+
+    console.log(`👉 Đang update Product ID: ${product_id} sang Status: ${status}`);
+
+    if (!product_id) {
+      return res.status(400).json({ success: false, message: 'Thiếu product_id' });
+    }
+
+    // Validate status phải là 0 hoặc 1
+    if (status !== 0 && status !== 1) {
+      return res.status(400).json({ success: false, message: 'Status phải là 0 hoặc 1' });
+    }
+
+    // Câu lệnh SQL cập nhật trạng thái
+    const sql = "UPDATE Products SET status = ? WHERE product_id = ?";
+    
+    // Thực thi
+    const [result] = await execute(sql, [status, product_id]);
+
+    console.log("✅ Result:", result);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: status === 1 ? 'Đã hiện sản phẩm' : 'Đã ẩn sản phẩm'
+    });
+  } catch (error) {
+    console.error("❌ Lỗi updateProductStatus:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi Server khi ẩn/hiện sản phẩm' 
+    });
+  }
+};
+export const updateProduct = async (req, res) => {
+    try {
+        const { product_id, name, description, price, category_id, status } = req.body;
+        
+        console.log(`👉 Updating Product #${product_id}`, req.body);
+
+        if (!product_id || !name || !description || !price || !category_id) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Thiếu thông tin bắt buộc" 
+            });
+        }
+
+        // SQL cập nhật sản phẩm
+        const sql = `
+            UPDATE Products 
+            SET name = ?, description = ?, price = ?, category_id = ?, status = ?
+            WHERE product_id = ?
+        `;
+        
+        const [result] = await execute(sql, [
+            name, 
+            description, 
+            price, 
+            category_id, 
+            status, 
+            product_id
+        ]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy sản phẩm để cập nhật"
+            });
+        }
+
+        res.status(200).json({ 
+            success: true, 
+            message: "Cập nhật sản phẩm thành công" 
+        });
+
+    } catch (error) {
+        console.error("❌ Error in updateProduct:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Lỗi Server khi cập nhật sản phẩm",
+            error: error.message 
+        });
+    }
+};

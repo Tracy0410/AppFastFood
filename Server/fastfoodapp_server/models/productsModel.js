@@ -82,6 +82,23 @@ class ProductModel {
             return [];
         }
     }
+        static async getAdminProducts(req, res) {
+        try {
+            // Gọi hàm getAlladmin bên Model mà bạn vừa viết
+            const products = await ProductModel.getAlladmin();
+            
+            res.status(200).json({
+                success: true,
+                message: "Lấy danh sách admin thành công",
+                data: products
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: "Lỗi server: " + error.message
+            });
+        }
+    }
 }
 
 export default ProductModel;

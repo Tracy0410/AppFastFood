@@ -13,10 +13,10 @@ import '../models/checkout.dart';
 import 'dart:convert';
 
 class ApiService {
-  static const String baseUrl = 'http://10.146.239.37:8001'; //máy thật
-  static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
+  static const String baseUrl = 'http://10.198.165.37:8001'; //máy thật
+  static const String BaseUrl = 'http://127.0.0.1:8001'; // máy ảo
 
-  static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
+  static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
 
   // Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -921,56 +921,7 @@ class ApiService {
   return false;
 }
 
-  // 3. Lấy thống kê Dashboard (Doanh thu, Số đơn)
-  Future<Map<String, dynamic>> getDashboardStats() async {
-    try {
-      final token = await StorageHelper.getToken();
-      // Sửa URL cho đúng chuẩn Node.js (bỏ .php)
-      final url = Uri.parse('$urlEdit/api/status');
-
-      final response = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        }
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          return data['data']; // Mong đợi: { revenue: 100000, total_orders: 5, ... }
-        }
-      }
-    } catch (e) {
-      print("❌ Lỗi getDashboardStats: $e");
-    }
-    return {'revenue': 0, 'total_orders': 0};
-  }
-
-  // 4. (MỚI) Xóa sản phẩm (Dành cho Admin quản lý món ăn)
-  Future<bool> deleteProduct(int productId) async {
-    try {
-      final token = await StorageHelper.getToken();
-      final url = Uri.parse('$urlEdit/api/admin/products/$productId'); // API xóa theo ID
-
-      final response = await http.delete(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['success'] == true;
-      }
-    } catch (e) {
-      print("❌ Lỗi deleteProduct: $e");
-    }
-    return false;
-  }
+  
   double safeParseDouble(dynamic value) {
     if (value == null) return 0.0;
     if (value is double) return value;
@@ -1291,4 +1242,197 @@ Future<bool> updatePaymentStatus(int orderId, String status) async {
     return false;
   }
 }
+Future<List<Product>> getAdminProducts() async {
+  try {
+    final token = await StorageHelper.getToken();
+    // Gọi API lấy list (nếu API này trả về cả sản phẩm ẩn)
+    final response = await http.get(
+      Uri.parse('$urlEdit/api/products'), 
+      // Nếu server yêu cầu token admin mới trả về sp ẩn thì uncomment dòng dưới:
+      // headers: {'Authorization': 'Bearer $token'}, 
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+      if (jsonResponse['success'] == true) {
+        List<dynamic> data = jsonResponse['data'];
+        return data.map((item) => Product.fromJson(item)).toList();
+      }
+    }
+    return [];
+  } catch (e) {
+    print("Lỗi getAdminProducts: $e");
+    return [];
+  }
 }
+
+// 2. Hàm cập nhật sản phẩm (Quan trọng: xử lý status)
+Future<bool> updateProduct(Product product, File? imageFile) async {
+    try {
+      final token = await StorageHelper.getToken();
+      if (token == null) return false;
+
+      // BƯỚC 1: CẬP NHẬT THÔNG TIN CƠ BẢN (Tên, Giá, Ảnh...)
+      var uri = Uri.parse('$urlEdit/api/products/update/${product.id}');
+      var request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+
+      request.fields['name'] = product.name;
+      request.fields['description'] = product.description;
+      request.fields['price'] = product.price.toString();
+      
+      // Kiểm tra tên biến trong model của bạn (categoryId hay category_id)
+      request.fields['category_id'] = product.categoryId.toString(); 
+
+      // Gửi ảnh nếu có
+      if (imageFile != null) {
+        var pic = await http.MultipartFile.fromPath(
+          'image', 
+          imageFile.path,
+          contentType: MediaType('image', 'jpeg'), 
+        );
+        request.files.add(pic);
+      }
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+      
+      bool infoUpdated = false;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) infoUpdated = true;
+      }
+
+      // BƯỚC 2: GỌI RIÊNG API CẬP NHẬT TRẠNG THÁI (Quan trọng)
+      // Dù bước 1 có thành công hay không, ta vẫn cố gắng cập nhật status
+      
+      final urlStatus = Uri.parse('$urlEdit/api/products/update-status');
+      final responseStatus = await http.post(
+        urlStatus,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'product_id': product.id,
+          'status': product.status, // 1 hoặc 0
+        }),
+      );
+
+      // Kiểm tra kết quả bước 2
+      bool statusUpdated = responseStatus.statusCode == 200;
+
+      // Trả về true nếu ít nhất một trong hai thao tác thành công
+      return infoUpdated || statusUpdated;
+
+    } catch (e) {
+      print("❌ Lỗi ngoại lệ updateProduct: $e");
+      return false;
+    }
+  }
+// 2. Lấy danh sách danh mục (để hiển thị dropdown)
+Future<List<Map<String, dynamic>>> getCategories() async {
+  try {
+    final response = await http.get(Uri.parse('$urlEdit/api/categories'));
+    
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+      if (jsonResponse['success'] == true) {
+        return List<Map<String, dynamic>>.from(jsonResponse['data']);
+      }
+    }
+    return [];
+  } catch (e) {
+    print("Lỗi getCategories: $e");
+    return [];
+  }
+}
+  // 3. Lấy thống kê Dashboard (Doanh thu, Số đơn)
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    try {
+      final token = await StorageHelper.getToken();
+      // Sửa URL cho đúng chuẩn Node.js (bỏ .php)
+      final url = Uri.parse('$urlEdit/api/status');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        }
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return data['data']; // Mong đợi: { revenue: 100000, total_orders: 5, ... }
+        }
+      }
+    } catch (e) {
+      print("❌ Lỗi getDashboardStats: $e");
+    }
+    return {'revenue': 0, 'total_orders': 0};
+  }
+
+  // 4. (MỚI) Xóa sản phẩm (Dành cho Admin quản lý món ăn)
+  Future<bool> deleteProduct(int productId) async {
+    try {
+      final token = await StorageHelper.getToken();
+      final url = Uri.parse('$urlEdit/api/products/$productId'); // API xóa theo ID
+
+      final response = await http.delete(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+    } catch (e) {
+      print("❌ Lỗi deleteProduct: $e");
+    }
+    return false;
+  }
+  Future<bool> updateProductStatus(int productId, int status) async {
+  try {
+    final token = await StorageHelper.getToken();
+    if (token == null) {
+      print("❌ Token is null");
+      return false;
+    }
+
+    final url = Uri.parse('$urlEdit/api/admin/products/update-status');
+    
+    print("🔄 Gửi yêu cầu cập nhật trạng thái sản phẩm #$productId -> $status");
+    
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'product_id': productId,
+        'status': status,
+      }),
+    );
+
+    print("📥 Response Status: ${response.statusCode}");
+    print("📥 Response Body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['success'] == true;
+    }
+    return false;
+  } catch (e) {
+    print("❌ Lỗi updateProductStatus: $e");
+    return false;
+  }
+}
+}
+
