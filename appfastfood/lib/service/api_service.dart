@@ -16,7 +16,7 @@ class ApiService {
   static const String baseUrl = 'http://192.168.1.12:8001'; //máy thật
   static const String BaseUrl = 'http://10.0.2.2:8001'; // máy ảo
 
-  static final String urlEdit = baseUrl; //chỉnh url trên đây thôi
+  static final String urlEdit = BaseUrl; //chỉnh url trên đây thôi
 
   // Đăng nhập
   Future<Map<String, dynamic>> login(String username, String password) async {
@@ -262,9 +262,9 @@ class ApiService {
   Future<Map<String, dynamic>> changePassword(
     String oldPass,
     String newPass,
-    String confirmPass
+    String confirmPass,
   ) async {
-    try{
+    try {
       final String? token = await StorageHelper.getToken();
       if (token == null) {
         return {'success': false, 'message': 'Bạn chưa đăng nhập'};
@@ -282,23 +282,23 @@ class ApiService {
           'oldPassword': oldPass,
           'newPassword': newPass,
           'confirmPassword': confirmPass,
-        })
+        }),
       );
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
         return {
-          'success': true, 
-          'message': data['message'] ?? 'Đổi mật khẩu thành công'
+          'success': true,
+          'message': data['message'] ?? 'Đổi mật khẩu thành công',
         };
       } else {
         return {
-          'success': false, 
-          'message': data['message'] ?? 'Lỗi không xác định'
+          'success': false,
+          'message': data['message'] ?? 'Lỗi không xác định',
         };
       }
-    }catch(e){
+    } catch (e) {
       return {'success': false, 'message': 'Lỗi kết nối server'};
     }
   }
@@ -845,8 +845,11 @@ class ApiService {
     return []; // Trả về danh sách rỗng nếu lỗi
   }
 
-   // Đăng nhập Admin (Dùng chung login của bạn, giữ nguyên logic lưu role)
-  Future<Map<String, dynamic>> loginAdmin(String username, String password) async {
+  // Đăng nhập Admin (Dùng chung login của bạn, giữ nguyên logic lưu role)
+  Future<Map<String, dynamic>> loginAdmin(
+    String username,
+    String password,
+  ) async {
     return login(username, password); // Gọi lại hàm login ở trên
   }
 
@@ -854,13 +857,13 @@ class ApiService {
   Future<List<dynamic>> getAdminOrders(String status) async {
     try {
       final token = await StorageHelper.getToken();
-      
+
       // Xử lý tham số query string chuẩn xác
       // Nếu status có dữ liệu => thêm ?status=...
       // Nếu status rỗng => không thêm gì (để backend tự hiểu là lấy all hoặc xử lý mặc định)
       String queryString = "";
       if (status.isNotEmpty && status != 'ALL') {
-         queryString = "?status=$status";
+        queryString = "?status=$status";
       }
 
       final url = Uri.parse('$urlEdit/api/orders$queryString');
@@ -891,36 +894,32 @@ class ApiService {
 
   // 2. Cập nhật trạng thái đơn hàng (Duyệt/Hủy/Giao)
   Future<bool> updateOrderStatus(int orderId, String newStatus) async {
-  try {
-    final token = await StorageHelper.getToken();
-    final url = Uri.parse('$urlEdit/api/orders/update-status');
+    try {
+      final token = await StorageHelper.getToken();
+      final url = Uri.parse('$urlEdit/api/orders/update-status');
 
-    print("👉 [ADMIN API] Updating Order #$orderId to $newStatus");
+      print("👉 [ADMIN API] Updating Order #$orderId to $newStatus");
 
-    // SỬA LẠI: thay http.put bằng http.post
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'order_id': orderId,
-        'status': newStatus,
-      }),
-    );
+      // SỬA LẠI: thay http.put bằng http.post
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'order_id': orderId, 'status': newStatus}),
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['success'] == true;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] == true;
+      }
+    } catch (e) {
+      print("❌ Lỗi updateOrderStatus: $e");
     }
-  } catch (e) {
-    print("❌ Lỗi updateOrderStatus: $e");
+    return false;
   }
-  return false;
-}
 
-  
   double safeParseDouble(dynamic value) {
     if (value == null) return 0.0;
     if (value is double) return value;
@@ -1067,34 +1066,31 @@ class ApiService {
   }
 
   // ================= AI CHAT =================
- Future<String> chatWithAI({
-  required String question,
-}) async {
-  try {
-    final token = await StorageHelper.getToken();
-    final userId = await StorageHelper.getUserId();
+  Future<String> chatWithAI({required String question}) async {
+    try {
+      final token = await StorageHelper.getToken();
+      final userId = await StorageHelper.getUserId();
 
-    final url = Uri.parse('$urlEdit/api/ai/chat');
+      final url = Uri.parse('$urlEdit/api/ai/chat');
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'prompt': question, // ✅ PHẢI LÀ prompt
-        'user_id': userId,  // giữ hay bỏ đều được
-      }),
-    );
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'prompt': question, // ✅ PHẢI LÀ prompt
+          'user_id': userId, // giữ hay bỏ đều được
+        }),
+      );
 
-  if (response.statusCode == 200) {
-    print('🔥 AI RAW RESPONSE: ${response.body}');
-    final jsonRes = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        print('🔥 AI RAW RESPONSE: ${response.body}');
+        final jsonRes = jsonDecode(response.body);
 
-    return jsonRes['answer']?.toString() ?? 'AI chưa có câu trả lời';
-  }
-  else {
+        return jsonRes['answer']?.toString() ?? 'AI chưa có câu trả lời';
+      } else {
         return 'Lỗi AI (${response.statusCode})';
       }
     } catch (e) {
@@ -1102,7 +1098,9 @@ class ApiService {
     }
   }
 
-  static Future<List<Promotion>> checkAvailablePromotions(List<CartItem> cartItems) async {
+  static Future<List<Promotion>> checkAvailablePromotions(
+    List<CartItem> cartItems,
+  ) async {
     try {
       final List<int> pIds = cartItems.map<int>((e) => e.productId).toList();
       final List<int> cIds = cartItems.map<int>((e) => e.categoryId).toList();
@@ -1111,8 +1109,8 @@ class ApiService {
         Uri.parse('$urlEdit/api/promotions/check-available'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "productIds": pIds,     // Viết đúng CamelCase
-          "categoryIds": cIds,    // Viết đúng CamelCase
+          "productIds": pIds, // Viết đúng CamelCase
+          "categoryIds": cIds, // Viết đúng CamelCase
         }),
       );
 
@@ -1158,12 +1156,12 @@ class ApiService {
     try {
       // Gọi vào endpoint mới mà bạn vừa viết ở Backend
       final url = Uri.parse('$urlEdit/api/promotions/$promotionId/products');
-      
+
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonRes = jsonDecode(response.body);
-        
+
         if (jsonRes['success'] == true) {
           List<dynamic> data = jsonRes['data'];
           return data.map((json) => Product.fromJson(json)).toList();
@@ -1188,24 +1186,21 @@ class ApiService {
       }
 
       final url = Uri.parse('$urlEdit/api/orders/update-payment-status');
-      
+
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'order_id': orderId,
-          'payment_status': status,
-        }),
+        body: jsonEncode({'order_id': orderId, 'payment_status': status}),
       );
 
       if (response.statusCode == 200) {
         try {
           final data = jsonDecode(response.body);
           print("👉 [DEBUG] Parsed Data: $data");
-          
+
           if (data['success'] == true) {
             print("✅ Payment status updated successfully");
             return true;
@@ -1227,10 +1222,13 @@ class ApiService {
     }
   }
 
-  Future<List<Product>> getAdminProducts({String? status, int? categoryId}) async {
+  Future<List<Product>> getAdminProducts({
+    String? status,
+    int? categoryId,
+  }) async {
     try {
       final token = await StorageHelper.getToken();
-      
+
       // Tạo query params
       Map<String, String> queryParams = {};
       if (status != null && status != 'all') {
@@ -1240,8 +1238,9 @@ class ApiService {
         queryParams['category_id'] = categoryId.toString();
       }
 
-      final uri = Uri.parse('$urlEdit/api/admin/products')
-          .replace(queryParameters: queryParams);
+      final uri = Uri.parse(
+        '$urlEdit/api/admin/products',
+      ).replace(queryParameters: queryParams);
 
       final response = await http.get(
         uri,
@@ -1273,7 +1272,7 @@ class ApiService {
       var uri = Uri.parse('$urlEdit/api/admin/products/update');
 
       var request = http.MultipartRequest('POST', uri);
-      
+
       // Header
       request.headers['Authorization'] = 'Bearer $token';
 
@@ -1289,12 +1288,12 @@ class ApiService {
       if (imageFile != null) {
         var stream = http.ByteStream(imageFile.openRead());
         var length = await imageFile.length();
-        
+
         var multipartFile = http.MultipartFile(
           'image', // Tên field này phải khớp với upload.single('image') ở backend
           stream,
           length,
-          filename: imageFile.path.split('/').last
+          filename: imageFile.path.split('/').last,
         );
         request.files.add(multipartFile);
       } else {
@@ -1320,7 +1319,7 @@ class ApiService {
   Future<List<Map<String, dynamic>>> getCategories() async {
     try {
       final response = await http.get(Uri.parse('$urlEdit/api/categories'));
-      
+
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
         if (jsonResponse['success'] == true) {
@@ -1346,7 +1345,7 @@ class ApiService {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
-        }
+        },
       );
 
       if (response.statusCode == 200) {
@@ -1365,7 +1364,9 @@ class ApiService {
   Future<bool> deleteProduct(int productId) async {
     try {
       final token = await StorageHelper.getToken();
-      final url = Uri.parse('$urlEdit/api/products/$productId'); // API xóa theo ID
+      final url = Uri.parse(
+        '$urlEdit/api/products/$productId',
+      ); // API xóa theo ID
 
       final response = await http.delete(
         url,
@@ -1385,4 +1386,3 @@ class ApiService {
     return false;
   }
 }
-

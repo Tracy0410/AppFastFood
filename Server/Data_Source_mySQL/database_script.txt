@@ -377,3 +377,16 @@ INSERT INTO Promotion_Details (promotion_id, product_id, category_id, status) VA
 (20, 46, NULL, 1), -- 10/10: Khoai Tây Lắc Trứng Muối
 (21, 37, NULL, 1), -- 11/11: Combo 3 Miếng Gà
 (22, 15, NULL, 1); -- 12/12: Pizza 4 Loại Phô Mai
+
+
+ALTER TABLE reviews 
+ADD order_id INT NOT NULL AFTER product_id;
+
+ALTER TABLE reviews
+ADD CONSTRAINT fk_reviews_orders
+FOREIGN KEY (order_id) REFERENCES orders(order_id)
+ON DELETE CASCADE;
+
+-- Thêm luật: Một user, trong 1 đơn hàng, chỉ được review 1 sản phẩm 1 lần
+ALTER TABLE reviews 
+ADD UNIQUE KEY unique_review_per_order (user_id, order_id, product_id);
