@@ -32,4 +32,16 @@ class CartItem {
       note: json['note'] ?? '',
     );
   }
+  Map<String, dynamic> toJson() {
+    return {
+      'cart_id': cartId,
+      'product_id': productId, // Quan trọng: server thường dùng snake_case
+      'category_id': categoryId, // Quan trọng
+      'name': name,
+      'price': price,
+      'image_url': imageUrl,
+      'quantity': quantity,
+      'note': note,
+    };
+  }
 }

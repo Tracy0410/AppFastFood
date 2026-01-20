@@ -50,50 +50,54 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _onSelectVoucher() async {
-    // 1. Chuyển đổi dữ liệu sang CartItem (Bạn đã làm đúng chỗ này)
-    List<CartItem> tempCartItems = widget.inputItems.map((item) {
+    // 1. Kiểm tra dữ liệu
+    if (_data == null || _data!.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Đang tải dữ liệu đơn hàng...")),
+      );
+      return;
+    }
+
+    // 2. CONVERT DỮ LIỆU & KHÔI PHỤC CATEGORY ID
+    List<CartItem> tempCartItems = _data!.items.map((previewItem) {
+      // MẸO: Tìm lại item gốc trong widget.inputItems để lấy categoryId
+      // (Vì PreviewItem từ server trả về đang bị thiếu field này)
+      int catId = 0;
+      try {
+        final originalItem = widget.inputItems.firstWhere(
+          (input) => input.productId == previewItem.productId,
+        );
+        catId = originalItem.categoryId;
+      } catch (e) {
+        print("Không tìm thấy categoryId cho sp: ${previewItem.name}");
+      }
+
       return CartItem(
-        cartId: 0, 
-        productId: item.productId,
-        categoryId: item.categoryId, 
-        name: "",
-        price: 0,
-        imageUrl: "",
-        quantity: item.quantity,
-        note: item.note,
+        cartId: 0,
+        productId: previewItem.productId,
+        categoryId: catId, // <--- Đã lấy được Category ID chuẩn
+        name: previewItem.name,
+        price: previewItem.unitPrice,
+        imageUrl: previewItem.image,
+        quantity: previewItem.quantity,
+        note: "",
       );
     }).toList();
 
+    // 3. Chuyển màn hình
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        // SỬA TẠI ĐÂY: Dùng tempCartItems thay vì items
-        builder: (context) => PromotionCheckoutScreen(cartItems: tempCartItems), 
+        builder: (context) => PromotionCheckoutScreen(cartItems: tempCartItems),
       ),
     );
+
+    // 4. Xử lý kết quả
     if (result != null && result is Promotion) {
       setState(() {
-        _selectedPromotion = result; 
+        _selectedPromotion = result;
       });
-
-      _fetchPreview();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Đã áp dụng mã: ${result.name}")),
-      );
-    }
-  
-
-if (result != null && result is Promotion) {
-  setState(() {
-    _selectedPromotion = result;
-  });
-
-      _fetchPreview();
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Đã áp dụng mã: ${result.name}")));
+      _fetchPreview(); // Tính lại tiền
     }
   }
 

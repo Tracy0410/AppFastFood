@@ -798,18 +798,21 @@ export default class userController {
     static async checkAvailablePromotions(req, res) {
         try {
             const { product_id,category_id } = req.body; 
-            
+            console.log("File Controller");
+            console.log(product_id);
+            console.log(category_id);
             const promotions = await userModel.getApplicablePromotions(product_id,category_id);
             console.log(promotions);
             res.status(200).json({
                 success: true,
-                data: rows
+                data: promotions
             });
         } catch (error) {
             console.error("Lỗi tại Controller:", error);
             return res.status(500).json({ success: false, message: error.message });
         }
     }
+    
 
     // --- Phần Admin ---
     // API: Lấy danh sách đơn hàng của user ()

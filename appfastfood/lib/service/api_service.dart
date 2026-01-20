@@ -1108,10 +1108,7 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$urlEdit/api/promotions/check-available'),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "productIds": pIds, // Viết đúng CamelCase
-          "categoryIds": cIds, // Viết đúng CamelCase
-        }),
+        body: jsonEncode({"product_id": pIds, "category_id": cIds}),
       );
 
       if (response.statusCode == 200) {
