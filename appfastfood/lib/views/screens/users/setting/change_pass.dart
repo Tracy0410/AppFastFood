@@ -147,7 +147,7 @@ class _ChangePass extends State<ChangePass>{
                       ),
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white) : const Text(
-                            "LƯU ĐỊA CHỈ",
+                            "Đổi Mật Khẩu",
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

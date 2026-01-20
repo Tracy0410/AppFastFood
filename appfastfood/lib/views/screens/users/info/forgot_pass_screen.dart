@@ -1,5 +1,6 @@
 import 'package:appfastfood/service/api_service.dart';
 import 'package:appfastfood/utils/app_colors.dart';
+import 'package:appfastfood/utils/storage_helper.dart';
 import 'package:appfastfood/views/screens/login_screen.dart';
 import 'package:appfastfood/views/widget/auth_widgets.dart';
 import 'package:flutter/material.dart';
@@ -76,7 +77,17 @@ class _ForgotPassScreenState extends State<ForgotPassScreen> {
       if (response['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đặt lại mật khẩu thành công! Vui lòng đăng nhập.')));
-        Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=> const LoginScreen()), (route) => false);
+
+        String? token = await StorageHelper.getToken();
+        if (token != null && token.isNotEmpty) {
+          Navigator.pop(context); 
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context, 
+            MaterialPageRoute(builder: (context) => const LoginScreen()), 
+            (route) => false
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(response['message'] ?? 'Đặt lại mật khẩu thất bại')));
