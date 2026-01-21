@@ -71,10 +71,10 @@ class ProductCard extends StatelessWidget {
               // 3. Sử dụng formatter ở đây
               Text(
                 formatCurrency.format(product.price),
-                style: TextStyle(
-                  fontWeight:
-                      FontWeight.bold, // Nên in đậm giá tiền cho dễ nhìn
-                  color: Colors.red, // (Tuỳ chọn) Đổi màu giá tiền cho nổi bật
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                  fontSize: 16,
                 ),
               ),
             ],

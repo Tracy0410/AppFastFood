@@ -5,14 +5,14 @@ import 'package:appfastfood/views/widget/auth_widgets.dart';
 import 'package:appfastfood/views/widget/topbar_page.dart';
 import 'package:flutter/material.dart';
 
-class ChangePass extends StatefulWidget{
+class ChangePass extends StatefulWidget {
   const ChangePass({super.key});
 
   @override
   State<ChangePass> createState() => _ChangePass();
 }
 
-class _ChangePass extends State<ChangePass>{
+class _ChangePass extends State<ChangePass> {
   final TextEditingController _oldPassController = TextEditingController();
   final TextEditingController _newPassController = TextEditingController();
   final TextEditingController _confirmPassController = TextEditingController();
@@ -46,14 +46,21 @@ class _ChangePass extends State<ChangePass>{
       _isLoading = true;
     });
 
-    final result = await _apiService.changePassword(oldPass, newPass, confirmPass);
+    final result = await _apiService.changePassword(
+      oldPass,
+      newPass,
+      confirmPass,
+    );
 
     if (mounted) {
       setState(() {
         _isLoading = false;
       });
       if (result['success']) {
-        _showMsg(result['message'] ?? "Đổi mật khẩu thành công!", isError: false);
+        _showMsg(
+          result['message'] ?? "Đổi mật khẩu thành công!",
+          isError: false,
+        );
 
         _oldPassController.clear();
         _newPassController.clear();
@@ -63,6 +70,7 @@ class _ChangePass extends State<ChangePass>{
       }
     }
   }
+
   void _showMsg(String msg, {bool isError = true}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -73,7 +81,7 @@ class _ChangePass extends State<ChangePass>{
   }
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -81,18 +89,25 @@ class _ChangePass extends State<ChangePass>{
           children: [
             TopBarPage(showBackButton: true, title: "Thay Đổi Mật Khẩu"),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24,vertical: 30),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CustomTextField(
                     title: "Mật Khẩu Cũ",
-                    controller: _oldPassController, 
+                    controller: _oldPassController,
                     hintText: "Nhập mật khẩu cũ",
                     obscureText: _obscureOldPassword,
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureOldPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.primaryOrange),
-                      onPressed: () => setState(() => _obscureOldPassword = !_obscureOldPassword)
+                      icon: Icon(
+                        _obscureOldPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppColors.primaryOrange,
+                      ),
+                      onPressed: () => setState(
+                        () => _obscureOldPassword = !_obscureOldPassword,
+                      ),
                     ),
                   ),
 
@@ -100,11 +115,19 @@ class _ChangePass extends State<ChangePass>{
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPassScreen()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ForgotPassScreen(),
+                          ),
+                        );
                       },
                       child: const Text(
                         "Forget Password",
-                        style: TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: AppColors.primaryOrange,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -113,23 +136,37 @@ class _ChangePass extends State<ChangePass>{
 
                   CustomTextField(
                     title: "Mật Khẩu Mới",
-                    controller: _newPassController, 
+                    controller: _newPassController,
                     hintText: "Nhập mật khẩu Mới",
                     obscureText: _obscureNewPassword,
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureNewPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.primaryOrange),
-                      onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword)
+                      icon: Icon(
+                        _obscureNewPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppColors.primaryOrange,
+                      ),
+                      onPressed: () => setState(
+                        () => _obscureNewPassword = !_obscureNewPassword,
+                      ),
                     ),
                   ),
 
                   CustomTextField(
-                    title: "Mật Khẩu Cũ",
-                    controller: _confirmPassController, 
-                    hintText: "Nhập mật khẩu cũ",
+                    title: "Xác Nhận Mật Khẩu Mới",
+                    controller: _confirmPassController,
+                    hintText: "Nhập lại mật khẩu mới",
                     obscureText: _obscureNewPassword,
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureNewPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.primaryOrange),
-                      onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword)
+                      icon: Icon(
+                        _obscureNewPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppColors.primaryOrange,
+                      ),
+                      onPressed: () => setState(
+                        () => _obscureNewPassword = !_obscureNewPassword,
+                      ),
                     ),
                   ),
 
@@ -146,20 +183,21 @@ class _ChangePass extends State<ChangePass>{
                         ),
                       ),
                       child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white) : const Text(
-                            "Đổi Mật Khẩu",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 1
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              "Đổi Mật Khẩu",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1,
+                              ),
                             ),
-                          ),
                     ),
                   ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

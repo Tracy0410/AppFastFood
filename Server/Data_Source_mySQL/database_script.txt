@@ -390,3 +390,6 @@ ON DELETE CASCADE;
 -- Thêm luật: Một user, trong 1 đơn hàng, chỉ được review 1 sản phẩm 1 lần
 ALTER TABLE reviews 
 ADD UNIQUE KEY unique_review_per_order (user_id, order_id, product_id);
+
+
+-- Ma Ngan Hang NCB: 9704198526191432198

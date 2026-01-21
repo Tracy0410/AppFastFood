@@ -27,7 +27,7 @@ const vnp_Config = {
     tmnCode: "I49MR19A",
     hashSecret: "E0QDOWJ5E0WTRMNS9X1JC0EH1XTDS8IY",
     url: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
-    returnUrl: "http://10.0.0.2:8001/api/payment/vnpay_return"
+    returnUrl: "http://192.168.100.248:8001/api/payment/vnpay_return"
 }
 
 export default class userController {
@@ -765,7 +765,7 @@ export default class userController {
                     req.connection.remoteAddress ||
                     req.socket.remoteAddress ||
                     req.connection.socket.remoteAddress || 
-                    '10.0.0.2';
+                    '192.168.100.248';
                 // 3. Tạo URL thanh toán
                 const paymentUrl = createVnpayUrl({
                     orderId: result.order_id,

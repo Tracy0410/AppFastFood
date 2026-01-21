@@ -57,7 +57,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
     _refreshFavData();
 
-    NotificationHelper().init(); 
+    NotificationHelper().init();
     NotificationHelper().requestPermission();
     _startBackgroundCheck();
 
@@ -74,13 +74,17 @@ class _HomePageScreenState extends State<HomePageScreen> {
     try {
       final data = await _apiService.getNotificationSync();
       final deletedIds = await NotificationHelper().getDeletedIds();
-      
+
       int count = 0;
 
       // Đếm Order
       if (data['orders'] != null) {
         for (var o in data['orders']) {
-          String uid = NotificationHelper.generateId('ORDER', o['order_id'], status: o['order_status']);
+          String uid = NotificationHelper.generateId(
+            'ORDER',
+            o['order_id'],
+            status: o['order_status'],
+          );
           if (!deletedIds.contains(uid)) count++;
         }
       }
@@ -232,9 +236,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
       _currentEndDrawer = NotificationSide(
         onUsePromo: _handleApplyPromo,
         onNotificationChanged: () {
-           _updateNotificationCount();
+          _updateNotificationCount();
         },
-      ); 
+      );
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scaffoldKey.currentState?.openEndDrawer();
@@ -333,16 +337,15 @@ class _HomePageScreenState extends State<HomePageScreen> {
       for (var order in orders) {
         int orderId = order['order_id'];
         String newStatus = order['order_status'];
-        
+
         String key = 'order_status_$orderId';
         String? oldStatus = prefs.getString(key);
 
         // Logic: Nếu chưa từng lưu (đơn mới) HOẶC trạng thái thay đổi
         if (oldStatus != null && oldStatus != newStatus) {
-          
           String title = "Đơn hàng #$orderId cập nhật";
           String body = _getStatusMessage(newStatus);
-          
+
           NotificationHelper().showNotification(
             id: orderId,
             title: title,
@@ -361,48 +364,72 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
   String _getStatusMessage(String status) {
     switch (status) {
-      case 'PENDING': return 'Đơn hàng đang chờ xác nhận.';
-      case 'COOKING': return 'Món ăn đang được chế biến.';
-      case 'DELIVERING': return 'Tài xế đang giao hàng đến bạn.';
-      case 'COMPLETED': return 'Đơn hàng đã hoàn tất. Chúc ngon miệng!';
-      case 'CANCELLED': return 'Đơn hàng đã bị hủy.';
-      default: return 'Trạng thái mới: $status';
+      case 'PENDING':
+        return 'Đơn hàng đang chờ xác nhận.';
+      case 'COOKING':
+        return 'Món ăn đang được chế biến.';
+      case 'DELIVERING':
+        return 'Tài xế đang giao hàng đến bạn.';
+      case 'COMPLETED':
+        return 'Đơn hàng đã hoàn tất. Chúc ngon miệng!';
+      case 'CANCELLED':
+        return 'Đơn hàng đã bị hủy.';
+      default:
+        return 'Trạng thái mới: $status';
     }
   }
 
   // Hàm xử lý khi bấm "Dùng ngay"
   void _handleApplyPromo(int promotionId, String code) async {
+    // 1. Đóng Drawer
     Navigator.of(context).pop();
 
+    // 2. Reset về tab Home và điền code vào ô search
     setState(() {
-      _currentBottomIndex = 0; 
-      _search.text = code; 
+      _currentBottomIndex = 0;
+      _search.text = code;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Đang lọc sản phẩm khuyến mãi..."),
+        content: Text("Đang tìm sản phẩm khuyến mãi..."),
         duration: Duration(seconds: 1),
       ),
     );
 
     try {
-       List<Product> results = await _apiService.getProductsByPromotion(promotionId);
+      print("🚀 Đang gọi API lấy sản phẩm cho PromoID: $promotionId");
 
-       if (mounted) {
-         setState(() {
-           _homeDisplayProducts = results;
-           _productsFuture = Future.value(results);
-         });
-         
-         if (results.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Không có sản phẩm nào áp dụng cho khuyến mãi này")),
-            );
-         }
-       }
+      // Gọi API
+      List<Product> results = await _apiService.getProductsByPromotion(
+        promotionId,
+      );
+
+      print("✅ Đã nhận được: ${results.length} sản phẩm");
+
+      if (mounted) {
+        setState(() {
+          _homeDisplayProducts = results;
+          _productsFuture = Future.value(results);
+        });
+
+        if (results.isEmpty) {
+          // Nếu rỗng -> Có thể do Database chưa map đúng
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Chưa có sản phẩm nào cho mã khuyến mãi này (ID: $promotionId)",
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
     } catch (e) {
-       print("Lỗi apply promo: $e");
+      print("❌ Lỗi APP: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Lỗi: $e")));
     }
   }
 }

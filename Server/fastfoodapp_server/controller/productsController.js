@@ -50,13 +50,16 @@ class ProductController{
     static async filterProducts(req, res) {
         try {
             let { categoryId, minPrice, maxPrice, rating, keyword } = req.query;
-
+            console.log(minPrice);
+            console.log(maxPrice);
             // 1. ÉP KIỂU DỮ LIỆU (QUAN TRỌNG)
             // Chuyển chuỗi "150000" thành số 150000 để SQL so sánh đúng
             const minPriceNum = minPrice ? parseFloat(minPrice) : 0;
             const maxPriceNum = maxPrice ? parseFloat(maxPrice) : undefined;
             const ratingNum = rating ? parseInt(rating) : 0;
 
+            console.log(minPriceNum);
+            console.log(maxPriceNum);
             const products = await productsModel.filter({
                 categoryId,
                 minPrice: minPriceNum,
