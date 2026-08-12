@@ -51,10 +51,8 @@ Dự án được thực hiện bởi nhóm sinh viên với sự phân chia cô
 ---
 
 ## 📷 Hình ảnh Demo (Screenshots)
-*(Chèn 3-4 hình ảnh nổi bật của ứng dụng tại đây: Màn hình Home, Màn hình Thanh toán, Màn hình Admin)*
-*   `![Home Screen](link_anh_1)`
-*   `![Cart & Checkout](link_anh_2)`
-*   `![Admin Dashboard](link_anh_3)`
+*   `![Home Screen](https://drive.google.com/file/d/1WAOWS9iTKBn3ZoB6B9uX1pKfJE4Z8jYL/view?usp=drive_link)
+*   `![Cart & Checkout](https://drive.google.com/file/d/1N9uJzSOpwKrRM4AsJv60zoqpDfwXAOVD/view?usp=drive_link) & (https://drive.google.com/file/d/10Wce-Sn6tb1nMXDvHSjzbHQsavkO66vV/view?usp=drive_link)
 
 ## ⚙️ Hướng dẫn cài đặt (Installation)
 1. Clone repository về máy:
